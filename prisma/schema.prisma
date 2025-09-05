@@ -1,0 +1,475 @@
+// Omaima v2 - Comprehensive Prisma Schema
+// Combining features from Omaima customizer and ReadyCommerce admin
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// =============================================
+// User Management & Authentication
+// =============================================
+
+enum UserRole {
+  CUSTOMER
+  STAFF
+  ADMIN
+}
+
+model User {
+  id              String   @id @default(cuid())
+  email           String   @unique
+  firstName       String?  @map("first_name")
+  lastName        String?  @map("last_name")
+  phone           String?
+  avatarUrl       String?  @map("avatar_url")
+  role            UserRole @default(CUSTOMER)
+  emailVerified   Boolean  @default(false) @map("email_verified")
+  passwordHash    String   @map("password_hash")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  lastLogin       DateTime? @map("last_login")
+  isActive        Boolean  @default(true) @map("is_active")
+  preferences     Json?    // UserPreferences object
+  
+  // Relationships
+  orders          Order[]
+  savedDesigns    SavedDesign[]
+  cartItems       CartItem[]
+  
+  @@map("users")
+}
+
+// =============================================
+// Product Management
+// =============================================
+
+enum ProductType {
+  STANDARD
+  CUSTOMIZABLE
+}
+
+enum ProductStatus {
+  ACTIVE
+  INACTIVE
+  DRAFT
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  image       String?
+  parentId    String?  @map("parent_id")
+  parent      Category? @relation("CategoryParent", fields: [parentId], references: [id])
+  children    Category[] @relation("CategoryParent")
+  position    Int      @default(0)
+  isActive    Boolean  @default(true) @map("is_active")
+  seo         Json?    // SEOData object
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  
+  // Relationships
+  products    Product[]
+  
+  @@map("categories")
+}
+
+model Product {
+  id                      String        @id @default(cuid())
+  name                    String
+  slug                    String        @unique
+  description             String?
+  shortDescription        String?       @map("short_description")
+  type                    ProductType   @default(STANDARD)
+  status                  ProductStatus @default(DRAFT)
+  sku                     String?       @unique
+  price                   Decimal       @db.Decimal(10, 2)
+  compareAtPrice          Decimal?      @map("compare_at_price") @db.Decimal(10, 2)
+  costPrice               Decimal?      @map("cost_price") @db.Decimal(10, 2)
+  trackQuantity           Boolean       @default(true) @map("track_quantity")
+  quantity                Int?          @default(0)
+  weight                  Decimal?      @db.Decimal(8, 2)
+  requiresShipping        Boolean       @default(true) @map("requires_shipping")
+  taxable                 Boolean       @default(true)
+  taxCode                 String?       @map("tax_code")
+  tags                    String[]      @default([])
+  seo                     Json?         // SEOData object
+  customizationTemplateId String?       @map("customization_template_id")
+  basePrice               Decimal       @default(0) @map("base_price") @db.Decimal(10, 2)
+  estimatedDeliveryDays   Int           @default(14) @map("estimated_delivery_days")
+  createdAt               DateTime      @default(now()) @map("created_at")
+  updatedAt               DateTime      @updatedAt @map("updated_at")
+  
+  // Relationships
+  categories              Category[]
+  images                  ProductImage[]
+  variants                ProductVariant[]
+  customizationTemplates  CustomizationTemplate[]
+  orderItems              OrderItem[]
+  cartItems               CartItem[]
+  
+  @@map("products")
+}
+
+model ProductImage {
+  id        String   @id @default(cuid())
+  productId String   @map("product_id")
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  url       String
+  altText   String?  @map("alt_text")
+  position  Int      @default(0)
+  width     Int?
+  height    Int?
+  createdAt DateTime @default(now()) @map("created_at")
+  
+  @@map("product_images")
+}
+
+enum InventoryPolicy {
+  DENY
+  CONTINUE
+}
+
+model ProductVariant {
+  id              String          @id @default(cuid())
+  productId       String          @map("product_id")
+  product         Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  title           String
+  option1         String?
+  option2         String?
+  option3         String?
+  sku             String?         @unique
+  price           Decimal         @db.Decimal(10, 2)
+  compareAtPrice  Decimal?        @map("compare_at_price") @db.Decimal(10, 2)
+  costPrice       Decimal?        @map("cost_price") @db.Decimal(10, 2)
+  position        Int             @default(0)
+  quantity        Int             @default(0)
+  imageId         String?         @map("image_id")
+  weight          Decimal?        @db.Decimal(8, 2)
+  requiresShipping Boolean        @default(true) @map("requires_shipping")
+  taxable         Boolean         @default(true)
+  inventoryPolicy InventoryPolicy @default(DENY) @map("inventory_policy")
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+  
+  // Relationships
+  orderItems      OrderItem[]
+  cartItems       CartItem[]
+  
+  @@map("product_variants")
+}
+
+// =============================================
+// Customization Engine
+// =============================================
+
+model CustomizationTemplate {
+  id                    String   @id @default(cuid())
+  name                  String
+  description           String?
+  productId             String   @map("product_id")
+  category              String
+  basePrice             Decimal  @map("base_price") @db.Decimal(10, 2)
+  estimatedFabricYards  Decimal  @map("estimated_fabric_yards") @db.Decimal(5, 2)
+  availableComponents   String[] @map("available_components") @default([])
+  defaultConfiguration  Json?    @map("default_configuration") // Partial CustomGarmentConfig
+  uiConfiguration       Json?    @map("ui_configuration") // UI step configuration
+  isActive              Boolean  @default(true) @map("is_active")
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+  
+  // Relationships
+  product               Product  @relation(fields: [productId], references: [id])
+  options               CustomizationOption[]
+  savedDesigns          SavedDesign[]
+  
+  @@map("customization_templates")
+}
+
+enum PriceType {
+  FIXED
+  PERCENTAGE
+}
+
+model CustomizationOption {
+  id           String    @id @default(cuid())
+  templateId   String    @map("template_id")
+  template     CustomizationTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  category     String
+  name         String
+  displayName  String    @map("display_name")
+  description  String?
+  priceModifier Decimal  @map("price_modifier") @db.Decimal(10, 2)
+  priceType    PriceType @map("price_type") @default(FIXED)
+  imageUrl     String?   @map("image_url")
+  metadata     Json?     // Additional option-specific data
+  position     Int       @default(0)
+  isActive     Boolean   @default(true) @map("is_active")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  
+  @@map("customization_options")
+}
+
+model Fabric {
+  id               String   @id @default(cuid())
+  name             String
+  fabricCode       String   @unique @map("fabric_code")
+  description      String?
+  composition      String
+  weight           Decimal? @db.Decimal(5, 2)
+  pricePerUnit     Decimal  @map("price_per_unit") @db.Decimal(10, 2)
+  colorName        String   @map("color_name")
+  colorHex         String   @map("color_hex")
+  patternType      String   @map("pattern_type")
+  imageUrl         String?  @map("image_url")
+  swatchImageUrl   String?  @map("swatch_image_url")
+  stockQuantity    Int      @map("stock_quantity") @default(0)
+  minOrderQuantity Int      @map("min_order_quantity") @default(1)
+  isPremium        Boolean  @default(false) @map("is_premium")
+  season           String?
+  careInstructions String?  @map("care_instructions")
+  originCountry    String?  @map("origin_country")
+  supplierId       String?  @map("supplier_id")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+  
+  @@map("fabrics")
+}
+
+model SavedDesign {
+  id               String   @id @default(cuid())
+  userId           String   @map("user_id")
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  templateId       String   @map("template_id")
+  template         CustomizationTemplate @relation(fields: [templateId], references: [id])
+  name             String
+  configuration    Json     // Complete CustomGarmentConfig object
+  calculatedPrice  Decimal  @map("calculated_price") @db.Decimal(10, 2)
+  previewImage     String?  @map("preview_image")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+  
+  @@map("saved_designs")
+}
+
+// =============================================
+// Order Management
+// =============================================
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+enum FinancialStatus {
+  PENDING
+  PAID
+  PARTIALLY_PAID
+  REFUNDED
+  PARTIALLY_REFUNDED
+  VOIDED
+}
+
+enum FulfillmentStatus {
+  UNFULFILLED
+  PARTIAL
+  FULFILLED
+  CANCELLED
+}
+
+enum OrderSource {
+  WEB
+  ADMIN
+  API
+}
+
+model Order {
+  id                String            @id @default(cuid())
+  orderNumber       String            @unique @map("order_number")
+  customerId        String?           @map("customer_id")
+  customer          User?             @relation(fields: [customerId], references: [id])
+  email             String
+  phone             String?
+  status            OrderStatus       @default(PENDING)
+  financialStatus   FinancialStatus   @default(PENDING) @map("financial_status")
+  fulfillmentStatus FulfillmentStatus @default(UNFULFILLED) @map("fulfillment_status")
+  subtotal          Decimal           @db.Decimal(10, 2)
+  taxAmount         Decimal           @map("tax_amount") @db.Decimal(10, 2)
+  shippingAmount    Decimal           @map("shipping_amount") @db.Decimal(10, 2)
+  discountAmount    Decimal           @default(0) @map("discount_amount") @db.Decimal(10, 2)
+  totalAmount       Decimal           @map("total_amount") @db.Decimal(10, 2)
+  currency          String            @default("USD")
+  billingAddress    Json              @map("billing_address") // Address object
+  shippingAddress   Json?             @map("shipping_address") // Address object
+  shippingMethod    String?           @map("shipping_method")
+  trackingNumber    String?           @map("tracking_number")
+  trackingUrl       String?           @map("tracking_url")
+  estimatedDelivery DateTime?         @map("estimated_delivery")
+  notes             String?
+  tags              String[]          @default([])
+  source            OrderSource       @default(WEB)
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+  shippedAt         DateTime?         @map("shipped_at")
+  deliveredAt       DateTime?         @map("delivered_at")
+  cancelledAt       DateTime?         @map("cancelled_at")
+  
+  // Relationships
+  items             OrderItem[]
+  
+  @@map("orders")
+}
+
+enum ProductionStatus {
+  PENDING
+  FABRIC_CUTTING
+  SEWING
+  FINISHING
+  QUALITY_CHECK
+  COMPLETED
+}
+
+model OrderItem {
+  id                   String             @id @default(cuid())
+  orderId              String             @map("order_id")
+  order                Order              @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId            String             @map("product_id")
+  product              Product            @relation(fields: [productId], references: [id])
+  variantId            String?            @map("variant_id")
+  variant              ProductVariant?    @relation(fields: [variantId], references: [id])
+  productName          String             @map("product_name")
+  variantTitle         String?            @map("variant_title")
+  quantity             Int
+  unitPrice            Decimal            @map("unit_price") @db.Decimal(10, 2)
+  totalPrice           Decimal            @map("total_price") @db.Decimal(10, 2)
+  sku                  String?
+  imageUrl             String?            @map("image_url")
+  customConfiguration  Json?              @map("custom_configuration") // CustomGarmentConfig object
+  customizationNotes   String?            @map("customization_notes")
+  productionStatus     ProductionStatus?  @map("production_status")
+  estimatedCompletion  DateTime?          @map("estimated_completion")
+  createdAt            DateTime           @default(now()) @map("created_at")
+  updatedAt            DateTime           @updatedAt @map("updated_at")
+  
+  @@map("order_items")
+}
+
+// =============================================
+// Cart Management
+// =============================================
+
+model Cart {
+  id             String     @id @default(cuid())
+  userId         String?    @map("user_id")
+  sessionId      String?    @map("session_id")
+  subtotal       Decimal    @default(0) @db.Decimal(10, 2)
+  taxAmount      Decimal    @default(0) @map("tax_amount") @db.Decimal(10, 2)
+  shippingAmount Decimal    @default(0) @map("shipping_amount") @db.Decimal(10, 2)
+  discountAmount Decimal    @default(0) @map("discount_amount") @db.Decimal(10, 2)
+  totalAmount    Decimal    @default(0) @map("total_amount") @db.Decimal(10, 2)
+  currency       String     @default("USD")
+  discountCodes  Json       @default("[]") @map("discount_codes") // Array of discount codes
+  updatedAt      DateTime   @updatedAt @map("updated_at")
+  expiresAt      DateTime?  @map("expires_at")
+  
+  // Relationships
+  items          CartItem[]
+  
+  @@map("carts")
+}
+
+model CartItem {
+  id                  String              @id @default(cuid())
+  cartId              String              @map("cart_id")
+  cart                Cart                @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  userId              String?             @map("user_id")
+  user                User?               @relation(fields: [userId], references: [id])
+  productId           String              @map("product_id")
+  product             Product             @relation(fields: [productId], references: [id])
+  variantId           String?             @map("variant_id")
+  variant             ProductVariant?     @relation(fields: [variantId], references: [id])
+  customConfiguration Json?               @map("custom_configuration") // CustomGarmentConfig object
+  quantity            Int
+  unitPrice           Decimal             @map("unit_price") @db.Decimal(10, 2)
+  totalPrice          Decimal             @map("total_price") @db.Decimal(10, 2)
+  addedAt             DateTime            @default(now()) @map("added_at")
+  
+  @@map("cart_items")
+}
+
+// =============================================
+// Content Management (CMS)
+// =============================================
+
+enum ContentStatus {
+  DRAFT
+  PUBLISHED
+}
+
+model CMSContent {
+  id            String        @id @default(cuid())
+  slug          String        @unique
+  title         String
+  content       String
+  excerpt       String?
+  featuredImage String?       @map("featured_image")
+  status        ContentStatus @default(DRAFT)
+  seo           Json?         // SEOData object
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+  publishedAt   DateTime?     @map("published_at")
+  
+  @@map("cms_content")
+}
+
+model HomePage {
+  id           String   @id @default(cuid())
+  heroSection  Json     @map("hero_section") // Hero section configuration
+  featuredProducts Json @map("featured_products") // Array of product IDs
+  testimonials Json     @default("[]") // Array of testimonial objects
+  aboutSection Json?    @map("about_section") // About section content
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  
+  @@map("home_page")
+}
+
+// =============================================
+// System & Analytics
+// =============================================
+
+model SystemSettings {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     Json
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  
+  @@map("system_settings")
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  userId    String?  @map("user_id")
+  action    String
+  entity    String
+  entityId  String   @map("entity_id")
+  metadata  Json?
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+  createdAt DateTime @default(now()) @map("created_at")
+  
+  @@map("activity_logs")
+}
