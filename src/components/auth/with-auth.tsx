@@ -34,22 +34,24 @@ export function withAuth<P extends object>(
     const router = useRouter();
     const { 
       user, 
-      isAuthenticated, 
-      isLoading, 
-      refreshAuth 
-    } = useAppStore((state) => ({
+      loading, 
+      refreshSession 
+    } = useAuthStore((state) => ({
       user: state.user,
-      isAuthenticated: state.isAuthenticated,
-      isLoading: state.isLoading,
-      refreshAuth: state.refreshAuth,
+      loading: state.loading,
+      refreshSession: state.refreshSession,
     }));
+
+    // Compute isAuthenticated from user presence
+    const isAuthenticated = !!user;
+    const isLoading = loading;
 
     useEffect(() => {
       // Initialize authentication check on mount
       if (!isAuthenticated && !user && !isLoading) {
-        refreshAuth();
+        refreshSession();
       }
-    }, [isAuthenticated, user, isLoading, refreshAuth]);
+    }, [isAuthenticated, user, isLoading, refreshSession]);
 
     useEffect(() => {
       // Handle authentication requirements
@@ -83,12 +85,6 @@ export function withAuth<P extends object>(
             router.push(dashboardPath);
             return;
           }
-        }
-
-        // Check if user account is active
-        if (requireAuth && isAuthenticated && user && !user.isActive) {
-          router.push('/auth/account-suspended');
-          return;
         }
       }
     }, [
@@ -202,11 +198,14 @@ export const withAuthRequired = <P extends object>(Component: ComponentType<P>) 
 export const withGuestOnly = <P extends object>(Component: ComponentType<P>) => {
   const GuestOnlyComponent = (props: P) => {
     const router = useRouter();
-    const { isAuthenticated, user, isLoading } = useAppStore((state) => ({
-      isAuthenticated: state.isAuthenticated,
+    const { user, loading } = useAuthStore((state) => ({
       user: state.user,
-      isLoading: state.isLoading,
+      loading: state.loading,
     }));
+    
+    // Compute isAuthenticated from user presence
+    const isAuthenticated = !!user;
+    const isLoading = loading;
 
     useEffect(() => {
       if (!isLoading && isAuthenticated && user) {

@@ -1,8 +1,8 @@
 "use client"
 
-import { useEffect, ComponentType } from 'react'
+import { useEffect, ComponentType, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuthStore } from '@/store/auth-store'
+import { supabase } from '@/lib/supabase/client'
 import { Loader2 } from 'lucide-react'
 
 interface AuthWrapperProps {
@@ -28,31 +28,50 @@ export function withAuth<P extends object>(
 
   const AuthComponent = (props: P) => {
     const router = useRouter()
-    const { user, loading } = useAuthStore()
+    const [user, setUser] = useState<any>(null)
+    const [loading, setLoading] = useState(true)
 
     useEffect(() => {
-      if (loading) return
+      const checkAuth = async () => {
+        try {
+          if (!requireAuth) {
+            setLoading(false)
+            return
+          }
 
-      if (requireAuth) {
-        if (!user) {
-          // Redirect to login with return URL
-          const currentPath = window.location.pathname
-          const loginUrl = currentPath !== '/auth/login' && currentPath !== '/auth/register' 
-            ? `${redirectTo}?redirect=${encodeURIComponent(currentPath)}`
-            : redirectTo
-          router.push(loginUrl)
-          return
-        }
+          const { data: { session } } = await supabase.auth.getSession()
+          
+          if (!session) {
+            const currentPath = window.location.pathname
+            const loginUrl = currentPath !== '/auth/login' && currentPath !== '/auth/register' 
+              ? `${redirectTo}?redirect=${encodeURIComponent(currentPath)}`
+              : redirectTo
+            router.push(loginUrl)
+            return
+          }
 
-        // Check role permissions
-        if (!allowedRoles.includes(user.role)) {
-          // Redirect to appropriate dashboard
-          const dashboardPath = user.role === 'ADMIN' ? '/admin' : '/account'
-          router.push(dashboardPath)
-          return
+          const userRole = session.user?.user_metadata?.role || 'CUSTOMER'
+          
+          // Check role permissions
+          if (!allowedRoles.includes(userRole as any)) {
+            const dashboardPath = userRole === 'ADMIN' ? '/admin' : '/account'
+            router.push(dashboardPath)
+            return
+          }
+
+          setUser(session.user)
+        } catch (error) {
+          console.error('Auth check error:', error)
+          if (requireAuth) {
+            router.push(redirectTo)
+          }
+        } finally {
+          setLoading(false)
         }
       }
-    }, [user, loading, router])
+
+      checkAuth()
+    }, [requireAuth, allowedRoles, redirectTo, router])
 
     // Show loading while checking auth
     if (loading) {
@@ -93,17 +112,32 @@ export function withAuth<P extends object>(
 export function withGuestOnly<P extends object>(Component: ComponentType<P>) {
   const GuestComponent = (props: P) => {
     const router = useRouter()
-    const { user, loading } = useAuthStore()
+    const [user, setUser] = useState<any>(null)
+    const [loading, setLoading] = useState(true)
 
     useEffect(() => {
-      if (loading) return
-
-      if (user) {
-        // Redirect authenticated users to dashboard
-        const dashboardPath = user.role === 'ADMIN' ? '/admin' : '/account'
-        router.push(dashboardPath)
+      const checkAuth = async () => {
+        try {
+          const { data: { session } } = await supabase.auth.getSession()
+          
+          if (session) {
+            // Redirect authenticated users to dashboard
+            const userRole = session.user?.user_metadata?.role || 'CUSTOMER'
+            const dashboardPath = userRole === 'ADMIN' ? '/admin' : '/account'
+            router.push(dashboardPath)
+            return
+          }
+          
+          setUser(null)
+        } catch (error) {
+          console.error('Guest auth check error:', error)
+        } finally {
+          setLoading(false)
+        }
       }
-    }, [user, loading, router])
+
+      checkAuth()
+    }, [router])
 
     if (loading || user) {
       return (

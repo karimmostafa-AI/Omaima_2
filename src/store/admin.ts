@@ -75,7 +75,7 @@ export interface AdminState {
   // Customization templates management
   templates: CustomizationTemplate[];
   selectedTemplate: CustomizationTemplate | null;
-  templateOptions: Record<string, CustomizationOption[]>;
+  templateOptions: Record<string, Record<string, CustomizationOption[]>>;
   isLoadingTemplates: boolean;
   
   // UI state
@@ -174,6 +174,27 @@ export interface AdminState {
 // =============================================
 // API Helper Functions
 // =============================================
+
+// Helper to convert filter values to URL-safe strings
+function filtersToSearchParams(filters: SearchFilters & { page?: string | number; limit?: string | number }): URLSearchParams {
+  const params: Record<string, string> = {};
+  
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value !== undefined && value !== null) {
+      if (Array.isArray(value)) {
+        params[key] = value.join(',');
+      } else if (typeof value === 'boolean') {
+        params[key] = value.toString();
+      } else if (typeof value === 'number') {
+        params[key] = value.toString();
+      } else {
+        params[key] = String(value);
+      }
+    }
+  });
+  
+  return new URLSearchParams(params);
+}
 
 async function apiRequest<T>(url: string, options?: RequestInit): Promise<T> {
   const response = await fetch(url, {
@@ -289,10 +310,10 @@ export const useAdminStore = create<AdminState>()(
           });
           
           try {
-            const params = new URLSearchParams({
+            const params = filtersToSearchParams({
+              ...filters,
               page: page.toString(),
               limit: get().ordersPagination.limit.toString(),
-              ...filters,
             });
             
             const response = await apiRequest<PaginatedResponse<Order>>(`/api/admin/orders?${params}`);
@@ -383,7 +404,7 @@ export const useAdminStore = create<AdminState>()(
         
         exportOrders: async (filters = {}) => {
           try {
-            const params = new URLSearchParams(filters);
+            const params = filtersToSearchParams(filters);
             const response = await fetch(`/api/admin/orders/export?${params}`);
             
             if (!response.ok) throw new Error('Export failed');
@@ -419,10 +440,10 @@ export const useAdminStore = create<AdminState>()(
           });
           
           try {
-            const params = new URLSearchParams({
+            const params = filtersToSearchParams({
+              ...filters,
               page: page.toString(),
               limit: get().productsPagination.limit.toString(),
-              ...filters,
             });
             
             const response = await apiRequest<PaginatedResponse<Product>>(`/api/admin/products?${params}`);
@@ -693,10 +714,10 @@ export const useAdminStore = create<AdminState>()(
           });
           
           try {
-            const params = new URLSearchParams({
+            const params = filtersToSearchParams({
+              ...filters,
               page: page.toString(),
               limit: get().customersPagination.limit.toString(),
-              ...filters,
             });
             
             const response = await apiRequest<PaginatedResponse<User>>(`/api/admin/customers?${params}`);
@@ -758,7 +779,7 @@ export const useAdminStore = create<AdminState>()(
         
         exportCustomers: async (filters = {}) => {
           try {
-            const params = new URLSearchParams(filters);
+            const params = filtersToSearchParams(filters);
             const response = await fetch(`/api/admin/customers/export?${params}`);
             
             if (!response.ok) throw new Error('Export failed');
@@ -793,7 +814,7 @@ export const useAdminStore = create<AdminState>()(
           });
           
           try {
-            const params = new URLSearchParams(filters);
+            const params = filtersToSearchParams(filters);
             const fabrics = await apiRequest<Fabric[]>(`/api/admin/fabrics?${params}`);
             
             set((state) => {
@@ -1029,7 +1050,7 @@ export const useAdminStore = create<AdminState>()(
           try {
             const options = await apiRequest<Record<string, CustomizationOption[]>>(`/api/admin/templates/${templateId}/options`);
             set((state) => {
-              state.templateOptions = { ...state.templateOptions, [templateId]: options };
+              state.templateOptions[templateId] = options;
             });
           } catch (error) {
             set((state) => {
@@ -1047,9 +1068,9 @@ export const useAdminStore = create<AdminState>()(
             
             set((state) => {
               if (!state.templateOptions[templateId]) {
-                state.templateOptions[templateId] = {};
+                state.templateOptions[templateId] = {} as Record<string, CustomizationOption[]>;
               }
-              const category = newOption.category;
+              const category = newOption.category || 'uncategorized';
               if (!state.templateOptions[templateId][category]) {
                 state.templateOptions[templateId][category] = [];
               }
@@ -1077,9 +1098,9 @@ export const useAdminStore = create<AdminState>()(
             
             set((state) => {
               // Update option in templateOptions
-              Object.keys(state.templateOptions).forEach(templateId => {
-                Object.keys(state.templateOptions[templateId]).forEach(category => {
-                  const optionIndex = state.templateOptions[templateId][category].findIndex(o => o.id === optionId);
+              Object.entries(state.templateOptions).forEach(([templateId, categories]) => {
+                Object.entries(categories).forEach(([category, options]) => {
+                  const optionIndex = options.findIndex((o: CustomizationOption) => o.id === optionId);
                   if (optionIndex !== -1) {
                     state.templateOptions[templateId][category][optionIndex] = updatedOption;
                   }
@@ -1107,10 +1128,10 @@ export const useAdminStore = create<AdminState>()(
             
             set((state) => {
               // Remove option from templateOptions
-              Object.keys(state.templateOptions).forEach(templateId => {
-                Object.keys(state.templateOptions[templateId]).forEach(category => {
+              Object.entries(state.templateOptions).forEach(([templateId, categories]) => {
+                Object.entries(categories).forEach(([category, options]) => {
                   state.templateOptions[templateId][category] = 
-                    state.templateOptions[templateId][category].filter(o => o.id !== optionId);
+                    options.filter((o: CustomizationOption) => o.id !== optionId);
                 });
               });
             });

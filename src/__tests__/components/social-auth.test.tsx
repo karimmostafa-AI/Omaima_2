@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import '@testing-library/jest-dom'
+import React from 'react'
 import { SocialLoginButton, GoogleLoginButton } from '@/components/auth/social-login-button'
 import { SocialAuthPanel } from '@/components/auth/social-auth-panel'
 import { useAuthStore } from '@/store/auth-store'
@@ -45,8 +47,8 @@ describe('Social Authentication Components', () => {
     it('should render Google login button correctly', () => {
       render(
         <SocialLoginButton 
-          provider=\"google\" 
-          data-testid=\"google-login-btn\"
+          provider="google" 
+          data-testid="google-login-btn"
         />
       )
       
@@ -58,8 +60,8 @@ describe('Social Authentication Components', () => {
     it('should render Facebook login button correctly', () => {
       render(
         <SocialLoginButton 
-          provider=\"facebook\" 
-          data-testid=\"facebook-login-btn\"
+          provider="facebook" 
+          data-testid="facebook-login-btn"
         />
       )
       
@@ -71,8 +73,8 @@ describe('Social Authentication Components', () => {
     it('should render GitHub login button correctly', () => {
       render(
         <SocialLoginButton 
-          provider=\"github\" 
-          data-testid=\"github-login-btn\"
+          provider="github" 
+          data-testid="github-login-btn"
         />
       )
       
@@ -84,8 +86,8 @@ describe('Social Authentication Components', () => {
     it('should render Apple login button correctly', () => {
       render(
         <SocialLoginButton 
-          provider=\"apple\" 
-          data-testid=\"apple-login-btn\"
+          provider="apple" 
+          data-testid="apple-login-btn"
         />
       )
       
@@ -100,8 +102,8 @@ describe('Social Authentication Components', () => {
       
       render(
         <SocialLoginButton 
-          provider=\"google\" 
-          data-testid=\"google-login-btn\"
+          provider="google" 
+          data-testid="google-login-btn"
         />
       )
       
@@ -119,8 +121,8 @@ describe('Social Authentication Components', () => {
       
       render(
         <SocialLoginButton 
-          provider=\"google\" 
-          data-testid=\"google-login-btn\"
+          provider="google" 
+          data-testid="google-login-btn"
         />
       )
       
@@ -139,9 +141,9 @@ describe('Social Authentication Components', () => {
       
       render(
         <SocialLoginButton 
-          provider=\"google\" 
+          provider="google" 
           onError={mockOnError}
-          data-testid=\"google-login-btn\"
+          data-testid="google-login-btn"
         />
       )
       
@@ -160,9 +162,9 @@ describe('Social Authentication Components', () => {
       
       render(
         <SocialLoginButton 
-          provider=\"google\" 
+          provider="google" 
           onSuccess={mockOnSuccess}
-          data-testid=\"google-login-btn\"
+          data-testid="google-login-btn"
         />
       )
       
@@ -177,9 +179,9 @@ describe('Social Authentication Components', () => {
     it('should be disabled when disabled prop is true', () => {
       render(
         <SocialLoginButton 
-          provider=\"google\" 
+          provider="google" 
           disabled={true}
-          data-testid=\"google-login-btn\"
+          data-testid="google-login-btn"
         />
       )
       
@@ -189,7 +191,7 @@ describe('Social Authentication Components', () => {
 
     it('should render custom children', () => {
       render(
-        <SocialLoginButton provider=\"google\">
+        <SocialLoginButton provider="google">
           Custom Google Login
         </SocialLoginButton>
       )
@@ -200,9 +202,9 @@ describe('Social Authentication Components', () => {
     it('should apply custom className', () => {
       render(
         <SocialLoginButton 
-          provider=\"google\" 
-          className=\"custom-class\"
-          data-testid=\"google-login-btn\"
+          provider="google" 
+          className="custom-class"
+          data-testid="google-login-btn"
         />
       )
       
@@ -213,9 +215,9 @@ describe('Social Authentication Components', () => {
     it('should handle different sizes correctly', () => {
       const { rerender } = render(
         <SocialLoginButton 
-          provider=\"google\" 
-          size=\"sm\"
-          data-testid=\"google-login-btn\"
+          provider="google" 
+          size="sm"
+          data-testid="google-login-btn"
         />
       )
       
@@ -224,9 +226,9 @@ describe('Social Authentication Components', () => {
       
       rerender(
         <SocialLoginButton 
-          provider=\"google\" 
-          size=\"lg\"
-          data-testid=\"google-login-btn\"
+          provider="google" 
+          size="lg"
+          data-testid="google-login-btn"
         />
       )
       
@@ -240,7 +242,7 @@ describe('Social Authentication Components', () => {
       const user = userEvent.setup()
       mockSignInWithGoogle.mockResolvedValue({ success: true })
       
-      render(<GoogleLoginButton data-testid=\"google-btn\" />)
+      render(<GoogleLoginButton data-testid="google-btn" />)
       
       const button = screen.getByTestId('google-btn')
       expect(button).toHaveTextContent('Continue with Google')
@@ -276,8 +278,8 @@ describe('Social Authentication Components', () => {
     it('should render custom title and description', () => {
       render(
         <SocialAuthPanel 
-          title=\"Sign In\"
-          description=\"Choose your login method\"
+          title="Sign In"
+          description="Choose your login method"
         />
       )
       
@@ -289,7 +291,7 @@ describe('Social Authentication Components', () => {
       render(
         <SocialAuthPanel 
           showDivider={true}
-          dividerText=\"OR CONTINUE WITH\"
+          dividerText="OR CONTINUE WITH"
         />
       )
       
@@ -300,7 +302,7 @@ describe('Social Authentication Components', () => {
       render(
         <SocialAuthPanel 
           showDivider={false}
-          dividerText=\"OR\"
+          dividerText="OR"
         />
       )
       
@@ -386,9 +388,9 @@ describe('Social Authentication Components', () => {
     it('should render in compact variant', () => {
       render(
         <SocialAuthPanel 
-          variant=\"compact\"
+          variant="compact"
           providers={['google']}
-          data-testid=\"compact-panel\"
+          data-testid="compact-panel"
         />
       )
       
@@ -400,7 +402,7 @@ describe('Social Authentication Components', () => {
     it('should render in grid variant', () => {
       render(
         <SocialAuthPanel 
-          variant=\"grid\"
+          variant="grid"
           providers={['google', 'facebook']}
         />
       )
@@ -413,8 +415,8 @@ describe('Social Authentication Components', () => {
     it('should apply custom className', () => {
       render(
         <SocialAuthPanel 
-          className=\"custom-panel-class\"
-          data-testid=\"social-panel\"
+          className="custom-panel-class"
+          data-testid="social-panel"
         />
       )
       
@@ -427,8 +429,8 @@ describe('Social Authentication Components', () => {
     it('should have proper ARIA labels', () => {
       render(
         <SocialLoginButton 
-          provider=\"google\"
-          aria-label=\"Sign in with Google\"
+          provider="google"
+          aria-label="Sign in with Google"
         />
       )
       
@@ -462,8 +464,8 @@ describe('Social Authentication Components', () => {
       
       render(
         <SocialLoginButton 
-          provider=\"google\"
-          data-testid=\"google-btn\"
+          provider="google"
+          data-testid="google-btn"
         />
       )
       
@@ -480,8 +482,8 @@ describe('Social Authentication Components', () => {
       
       render(
         <SocialLoginButton 
-          provider=\"google\"
-          data-testid=\"google-btn\"
+          provider="google"
+          data-testid="google-btn"
         />
       )
       
@@ -492,4 +494,4 @@ describe('Social Authentication Components', () => {
       expect(mockSignInWithProvider).toHaveBeenCalledWith('google')
     })
   })
-})"
+})

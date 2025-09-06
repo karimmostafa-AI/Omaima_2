@@ -1,40 +1,43 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { vi } from 'vitest';
 import { AdminLoginForm } from '@/components/auth/admin-login-form';
-import { useAuthStore } from '@/store/auth-store';
 import { useRouter } from 'next/navigation';
 
 // Mock dependencies
-jest.mock('@/store/auth-store');
-jest.mock('next/navigation');
-
 const mockAuthStore = {
-  signIn: jest.fn(),
-  validateAdminAccess: jest.fn(),
-  createAdminSession: jest.fn(),
-  verifyMFA: jest.fn(),
+  signIn: vi.fn(),
+  validateAdminAccess: vi.fn(),
+  createAdminSession: vi.fn(),
+  verifyMFA: vi.fn(),
   loading: false,
   user: null
 };
 
 const mockRouter = {
-  push: jest.fn(),
-  replace: jest.fn()
+  push: vi.fn(),
+  replace: vi.fn()
 };
 
-(useAuthStore as jest.Mock).mockReturnValue(mockAuthStore);
-(useRouter as jest.Mock).mockReturnValue(mockRouter);
+// Mock the store module
+vi.mock('@/store/auth-store', () => ({
+  useAuthStore: vi.fn(() => mockAuthStore)
+}));
+
+vi.mock('next/navigation', () => ({
+  useRouter: vi.fn(() => mockRouter)
+}));
 
 // Mock IP detection
-global.fetch = jest.fn();
+global.fetch = vi.fn();
 
 describe('AdminLoginForm Component', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     
     // Mock IP detection API
-    (global.fetch as jest.Mock).mockResolvedValue({
+    (global.fetch as any).mockResolvedValue({
       json: () => Promise.resolve({ ip: '127.0.0.1' })
     });
   });

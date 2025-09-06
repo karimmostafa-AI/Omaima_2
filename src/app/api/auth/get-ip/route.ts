@@ -39,7 +39,6 @@ export async function GET(request: NextRequest) {
       type: 'login',
       ip: clientIP,
       userAgent,
-      timestamp: new Date(),
       details: {
         action: 'ip_check_request',
         location

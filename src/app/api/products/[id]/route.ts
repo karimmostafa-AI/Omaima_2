@@ -4,9 +4,9 @@ import { ProductService } from '@/lib/services/product-service-temp'
 import { getAuthenticatedUser } from '@/lib/supabase'
 
 interface RouteParams {
-  params: {
+  params: Promise<{
     id: string
-  }
+  }>
 }
 
 export async function GET(
@@ -14,7 +14,8 @@ export async function GET(
   { params }: RouteParams
 ) {
   try {
-    const product = await ProductService.getProductById(params.id)
+    const { id } = await params
+    const product = await ProductService.getProductById(id)
     
     if (!product) {
       return NextResponse.json(
@@ -38,6 +39,7 @@ export async function PUT(
   { params }: RouteParams
 ) {
   try {
+    const { id } = await params
     // Check if user is admin
     const user = await getAuthenticatedUser()
     if (!user || user.user_metadata?.role !== 'ADMIN') {
@@ -66,6 +68,7 @@ export async function DELETE(
   { params }: RouteParams
 ) {
   try {
+    const { id } = await params
     // Check if user is admin
     const user = await getAuthenticatedUser()
     if (!user || user.user_metadata?.role !== 'ADMIN') {

@@ -25,7 +25,6 @@ export async function GET(request: NextRequest) {
       type: 'failed_login',
       ip: clientIP,
       userAgent,
-      timestamp: new Date(),
       details: {
         provider,
         error,
@@ -45,7 +44,6 @@ export async function GET(request: NextRequest) {
       type: 'failed_login',
       ip: clientIP,
       userAgent,
-      timestamp: new Date(),
       details: {
         provider,
         error: 'missing_code',
@@ -72,7 +70,6 @@ export async function GET(request: NextRequest) {
         type: 'failed_login',
         ip: clientIP,
         userAgent,
-        timestamp: new Date(),
         details: {
           provider,
           error: exchangeError.message,
@@ -91,7 +88,6 @@ export async function GET(request: NextRequest) {
         type: 'failed_login',
         ip: clientIP,
         userAgent,
-        timestamp: new Date(),
         details: {
           provider,
           error: 'no_user_session',
@@ -121,7 +117,6 @@ export async function GET(request: NextRequest) {
       userId: data.user.id,
       ip: clientIP,
       userAgent,
-      timestamp: new Date(),
       details: {
         provider,
         action: 'oauth_success',
@@ -187,7 +182,6 @@ export async function GET(request: NextRequest) {
       type: 'failed_login',
       ip: clientIP,
       userAgent,
-      timestamp: new Date(),
       details: {
         provider,
         error: error instanceof Error ? error.message : 'Unknown error',

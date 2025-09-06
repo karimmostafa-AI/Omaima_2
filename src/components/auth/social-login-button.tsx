@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 
 export type SocialProvider = 'google' | 'facebook' | 'github' | 'apple';
 
-interface SocialLoginButtonProps {
+interface SocialLoginButtonProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'onError'> {
   provider: SocialProvider;
   size?: 'sm' | 'md' | 'lg';
   variant?: 'default' | 'outline' | 'ghost';
@@ -89,7 +89,8 @@ export function SocialLoginButton({
   disabled = false,
   onSuccess,
   onError,
-  children
+  children,
+  ...rest
 }: SocialLoginButtonProps) {
   const { loading, signInWithProvider } = useAuthStore();
   const config = providerConfig[provider];
@@ -131,10 +132,13 @@ export function SocialLoginButton({
       disabled={disabled || loading}
       className={buttonClasses}
       variant={variant}
-      size={size}
+      {...rest}
     >
       {loading ? (
-        <Loader2 className="h-4 w-4 animate-spin" />
+        <>
+          <Loader2 className="h-4 w-4 animate-spin" data-testid="loading-spinner" />
+          {children || `Continue with ${config.name}`}
+        </>
       ) : (
         <>
           {config.icon}

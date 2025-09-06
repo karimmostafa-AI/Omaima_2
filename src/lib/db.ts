@@ -37,13 +37,14 @@ export const checkDBHealth = async () => {
     return { status: 'healthy', timestamp: new Date().toISOString() }
   } catch (error) {
     console.error('Database health check failed:', error)
-    return { status: 'unhealthy', error: error.message, timestamp: new Date().toISOString() }
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    return { status: 'unhealthy', error: errorMessage, timestamp: new Date().toISOString() }
   }
 }
 
 // Transaction wrapper
 export const withTransaction = async <T>(
-  callback: (tx: PrismaClient) => Promise<T>
+  callback: (tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$extends'>) => Promise<T>
 ): Promise<T> => {
   return await prisma.$transaction(callback)
 }

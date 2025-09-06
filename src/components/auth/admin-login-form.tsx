@@ -152,18 +152,18 @@ export function AdminLoginForm({ onSuccess, redirectTo, className }: AdminLoginP
   };
 
   const formatMFACode = (value: string) => {
-    const numbers = value.replace(/\\D/g, '');
+    const numbers = value.replace(/\D/g, '');
     setValue('mfaCode', numbers.slice(0, 6));
   };
 
   return (
     <div className={cn('w-full max-w-md mx-auto', className)}>
-      <Card className=\"border-2 border-orange-200 dark:border-orange-800\">
-        <CardHeader className=\"text-center\">
-          <div className=\"mx-auto mb-4 p-3 bg-orange-100 dark:bg-orange-900 rounded-full w-fit\">
-            <Shield className=\"h-8 w-8 text-orange-600 dark:text-orange-400\" />
+      <Card className="border-2 border-orange-200 dark:border-orange-800">
+        <CardHeader className="text-center">
+          <div className="mx-auto mb-4 p-3 bg-orange-100 dark:bg-orange-900 rounded-full w-fit">
+            <Shield className="h-8 w-8 text-orange-600 dark:text-orange-400" />
           </div>
-          <CardTitle className=\"text-2xl text-orange-600 dark:text-orange-400\">
+          <CardTitle className="text-2xl text-orange-600 dark:text-orange-400">
             Admin Access
           </CardTitle>
           <CardDescription>
@@ -173,93 +173,93 @@ export function AdminLoginForm({ onSuccess, redirectTo, className }: AdminLoginP
           </CardDescription>
         </CardHeader>
 
-        <CardContent className=\"space-y-6\">
+        <CardContent className="space-y-6">
           {/* Security Notice */}
-          <Alert className=\"border-orange-200 bg-orange-50 dark:bg-orange-950\">
-            <Lock className=\"h-4 w-4\" />
-            <AlertDescription className=\"text-sm\">
+          <Alert className="border-orange-200 bg-orange-50 dark:bg-orange-950">
+            <Lock className="h-4 w-4" />
+            <AlertDescription className="text-sm">
               <strong>Security Notice:</strong> This session will be monitored and logged. 
               Admin access requires additional verification.
             </AlertDescription>
           </Alert>
 
           {error && (
-            <Alert variant=\"destructive\">
-              <AlertTriangle className=\"h-4 w-4\" />
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
 
           {/* Session Information */}
           {sessionInfo && step === 'credentials' && (
-            <div className=\"space-y-3\">
-              <h4 className=\"text-sm font-medium\">Session Information</h4>
-              <div className=\"grid gap-2 text-xs\">
-                <div className=\"flex items-center gap-2\">
-                  <MapPin className=\"h-3 w-3 text-muted-foreground\" />
+            <div className="space-y-3">
+              <h4 className="text-sm font-medium">Session Information</h4>
+              <div className="grid gap-2 text-xs">
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-3 w-3 text-muted-foreground" />
                   <span>IP: {sessionInfo.ip}</span>
                 </div>
-                <div className=\"flex items-center gap-2\">
-                  <Monitor className=\"h-3 w-3 text-muted-foreground\" />
+                <div className="flex items-center gap-2">
+                  <Monitor className="h-3 w-3 text-muted-foreground" />
                   <span>Device: {sessionInfo.device}</span>
                 </div>
-                <div className=\"flex items-center gap-2\">
-                  <Clock className=\"h-3 w-3 text-muted-foreground\" />
+                <div className="flex items-center gap-2">
+                  <Clock className="h-3 w-3 text-muted-foreground" />
                   <span>Time: {sessionInfo.timestamp}</span>
                 </div>
               </div>
             </div>
           )}
 
-          <form onSubmit={handleSubmit(onSubmit)} className=\"space-y-4\">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             {step === 'credentials' && (
               <>
-                <div className=\"space-y-2\">
-                  <Label htmlFor=\"email\">Admin Email</Label>
+                <div className="space-y-2">
+                  <Label htmlFor="email">Admin Email</Label>
                   <Input
-                    id=\"email\"
-                    type=\"email\"
-                    placeholder=\"admin@omaima.com\"
+                    id="email"
+                    type="email"
+                    placeholder="admin@omaima.com"
                     {...register('email')}
                     className={errors.email ? 'border-red-500' : ''}
                   />
                   {errors.email && (
-                    <p className=\"text-xs text-red-500\">{errors.email.message}</p>
+                    <p className="text-xs text-red-500">{errors.email.message}</p>
                   )}
                 </div>
 
-                <div className=\"space-y-2\">
-                  <Label htmlFor=\"password\">Password</Label>
-                  <div className=\"relative\">
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <div className="relative">
                     <Input
-                      id=\"password\"
+                      id="password"
                       type={showPassword ? 'text' : 'password'}
-                      placeholder=\"Enter your secure password\"
+                      placeholder="Enter your secure password"
                       {...register('password')}
                       className={errors.password ? 'border-red-500 pr-10' : 'pr-10'}
                     />
                     <Button
-                      type=\"button\"
-                      variant=\"ghost\"
-                      size=\"sm\"
-                      className=\"absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent\"
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                       onClick={() => setShowPassword(!showPassword)}
                     >
                       {showPassword ? (
-                        <EyeOff className=\"h-4 w-4\" />
+                        <EyeOff className="h-4 w-4" />
                       ) : (
-                        <Eye className=\"h-4 w-4\" />
+                        <Eye className="h-4 w-4" />
                       )}
                     </Button>
                   </div>
                   {errors.password && (
-                    <p className=\"text-xs text-red-500\">{errors.password.message}</p>
+                    <p className="text-xs text-red-500">{errors.password.message}</p>
                   )}
                 </div>
 
                 <Button
-                  type=\"submit\"
-                  className=\"w-full bg-orange-600 hover:bg-orange-700\"
+                  type="submit"
+                  className="w-full bg-orange-600 hover:bg-orange-700"
                   disabled={isSubmitting || loading}
                 >
                   {isSubmitting || loading ? 'Verifying...' : 'Secure Login'}
@@ -269,40 +269,40 @@ export function AdminLoginForm({ onSuccess, redirectTo, className }: AdminLoginP
 
             {step === 'mfa' && (
               <>
-                <div className=\"text-center space-y-2\">
-                  <Smartphone className=\"h-12 w-12 mx-auto text-orange-600\" />
-                  <h3 className=\"font-semibold\">Multi-Factor Authentication</h3>
-                  <p className=\"text-sm text-muted-foreground\">
+                <div className="text-center space-y-2">
+                  <Smartphone className="h-12 w-12 mx-auto text-orange-600" />
+                  <h3 className="font-semibold">Multi-Factor Authentication</h3>
+                  <p className="text-sm text-muted-foreground">
                     Enter the 6-digit code from your authenticator app
                   </p>
                 </div>
 
-                <div className=\"space-y-2\">
-                  <Label htmlFor=\"mfaCode\">Verification Code</Label>
+                <div className="space-y-2">
+                  <Label htmlFor="mfaCode">Verification Code</Label>
                   <Input
-                    id=\"mfaCode\"
-                    type=\"text\"
-                    inputMode=\"numeric\"
-                    pattern=\"[0-9]*\"
+                    id="mfaCode"
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     maxLength={6}
-                    placeholder=\"000000\"
+                    placeholder="000000"
                     value={mfaCode || ''}
                     onChange={(e) => formatMFACode(e.target.value)}
-                    className=\"text-center text-2xl tracking-widest\"
+                    className="text-center text-2xl tracking-widest"
                   />
                 </div>
 
-                <div className=\"flex gap-3\">
+                <div className="flex gap-3">
                   <Button
-                    type=\"submit\"
-                    className=\"flex-1 bg-orange-600 hover:bg-orange-700\"
+                    type="submit"
+                    className="flex-1 bg-orange-600 hover:bg-orange-700"
                     disabled={!mfaCode || mfaCode.length !== 6 || isSubmitting}
                   >
                     {isSubmitting ? 'Verifying...' : 'Verify'}
                   </Button>
                   <Button
-                    type=\"button\"
-                    variant=\"outline\"
+                    type="button"
+                    variant="outline"
                     onClick={() => setStep('credentials')}
                   >
                     Back
@@ -312,21 +312,21 @@ export function AdminLoginForm({ onSuccess, redirectTo, className }: AdminLoginP
             )}
 
             {step === 'success' && (
-              <div className=\"text-center space-y-4\">
-                <div className=\"mx-auto p-3 bg-green-100 dark:bg-green-900 rounded-full w-fit\">
-                  <Shield className=\"h-12 w-12 text-green-600 dark:text-green-400\" />
+              <div className="text-center space-y-4">
+                <div className="mx-auto p-3 bg-green-100 dark:bg-green-900 rounded-full w-fit">
+                  <Shield className="h-12 w-12 text-green-600 dark:text-green-400" />
                 </div>
                 
                 <div>
-                  <h3 className=\"text-lg font-semibold text-green-600 dark:text-green-400\">
+                  <h3 className="text-lg font-semibold text-green-600 dark:text-green-400">
                     Access Granted
                   </h3>
-                  <p className=\"text-sm text-muted-foreground\">
+                  <p className="text-sm text-muted-foreground">
                     Redirecting to admin dashboard...
                   </p>
                 </div>
 
-                <Badge className=\"bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200\">
+                <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
                   Admin Session Active
                 </Badge>
               </div>
@@ -337,23 +337,23 @@ export function AdminLoginForm({ onSuccess, redirectTo, className }: AdminLoginP
             <>
               <Separator />
               
-              <div className=\"space-y-3\">
-                <h4 className=\"text-sm font-medium\">Security Features</h4>
-                <div className=\"grid gap-2 text-xs text-muted-foreground\">
-                  <div className=\"flex items-center gap-2\">
-                    <div className=\"w-2 h-2 bg-green-500 rounded-full\" />
+              <div className="space-y-3">
+                <h4 className="text-sm font-medium">Security Features</h4>
+                <div className="grid gap-2 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full" />
                     <span>IP Address Monitoring</span>
                   </div>
-                  <div className=\"flex items-center gap-2\">
-                    <div className=\"w-2 h-2 bg-green-500 rounded-full\" />
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full" />
                     <span>Session Encryption</span>
                   </div>
-                  <div className=\"flex items-center gap-2\">
-                    <div className=\"w-2 h-2 bg-green-500 rounded-full\" />
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full" />
                     <span>Activity Logging</span>
                   </div>
-                  <div className=\"flex items-center gap-2\">
-                    <div className=\"w-2 h-2 bg-green-500 rounded-full\" />
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full" />
                     <span>Multi-Factor Authentication</span>
                   </div>
                 </div>
@@ -364,8 +364,8 @@ export function AdminLoginForm({ onSuccess, redirectTo, className }: AdminLoginP
       </Card>
 
       {step === 'credentials' && (
-        <div className=\"mt-4 text-center\">
-          <p className=\"text-xs text-muted-foreground\">
+        <div className="mt-4 text-center">
+          <p className="text-xs text-muted-foreground">
             Need help? Contact your system administrator
           </p>
         </div>

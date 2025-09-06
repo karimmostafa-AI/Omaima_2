@@ -1,14 +1,6 @@
 import { supabase } from '@/lib/supabase'
 import { createClient } from '@/lib/supabase-middleware'
-
-interface SecurityEvent {
-  type: 'login' | 'logout' | 'failed_login' | 'admin_access' | 'mfa_enabled' | 'ip_blocked' | 'suspicious_activity'
-  userId?: string
-  ip: string
-  userAgent: string
-  timestamp: Date
-  details?: Record<string, any>
-}
+import type { SecurityEvent } from '@/types'
 
 interface SessionMetadata {
   userAgent: string
@@ -104,7 +96,6 @@ export class SecurityService {
         type: 'suspicious_activity',
         ip,
         userAgent: 'unknown',
-        timestamp: new Date(),
         details: { error: 'IP validation failed', message: error }
       })
       return true
@@ -192,6 +183,18 @@ export class SecurityService {
     }
   }
 
+  /**
+   * Check if an IP address is whitelisted
+   */
+  async isIPWhitelisted(ip: string): Promise<boolean> {
+    try {
+      return await this.validateIPAddress(ip)
+    } catch (error) {
+      console.error('IP whitelist check error:', error)
+      return false
+    }
+  }
+
   // ==========================================
   // Session Management Methods
   // ==========================================
@@ -224,7 +227,6 @@ export class SecurityService {
         userId,
         ip: metadata.ip,
         userAgent: metadata.userAgent,
-        timestamp: new Date(),
         details: { action: 'session_created' }
       })
 
@@ -289,7 +291,6 @@ export class SecurityService {
         userId,
         ip: 'system',
         userAgent: 'system',
-        timestamp: new Date(),
         details: { action: 'all_sessions_terminated' }
       })
     } catch (error) {
@@ -420,23 +421,29 @@ export class SecurityService {
   /**
    * Log security event to database/monitoring system
    */
-  async logSecurityEvent(event: SecurityEvent): Promise<void> {
+  async logSecurityEvent(event: Omit<SecurityEvent, 'timestamp' | 'id'>): Promise<void> {
     try {
+      const fullEvent: SecurityEvent = {
+        id: crypto.randomUUID(), // Always generate an ID
+        timestamp: new Date(),
+        ...event
+      }
+
       // Store in database
       await this.supabase
         .from('security_events')
-        .insert(event)
+        .insert(fullEvent)
 
       // Also store locally for development
       if (typeof window !== 'undefined') {
         const events = JSON.parse(localStorage.getItem('security_events') || '[]')
-        events.push(event)
+        events.push(fullEvent)
         localStorage.setItem('security_events', JSON.stringify(events.slice(-100)))
       }
 
       // In production, send to security monitoring service
       if (process.env.NODE_ENV === 'production') {
-        // await sendToSecurityMonitoring(event)
+        // await sendToSecurityMonitoring(fullEvent)
       }
     } catch (error) {
       console.error('Failed to log security event:', error)
@@ -521,7 +528,6 @@ export class SecurityService {
         userId: alert.userId,
         ip: alert.ip,
         userAgent: 'system',
-        timestamp: new Date(),
         details: { alert: alert.type, severity: alert.severity }
       })
 

@@ -1,5 +1,6 @@
 import { expect, afterEach, vi } from 'vitest'
 import { cleanup } from '@testing-library/react'
+import '@testing-library/jest-dom'
 import * as matchers from '@testing-library/jest-dom/matchers'
 
 // Extend Vitest's expect with Testing Library matchers
@@ -56,7 +57,13 @@ global.console = {
 if (!global.crypto) {
   global.crypto = {} as Crypto
 }
-global.crypto.randomUUID = vi.fn(() => 'mock-uuid-' + Math.random().toString(36).substr(2, 9))
+global.crypto.randomUUID = vi.fn(() => {
+  const chars = '0123456789abcdef'
+  const segments = [8, 4, 4, 4, 12]
+  return segments.map(len => 
+    Array.from({ length: len }, () => chars[Math.floor(Math.random() * 16)]).join('')
+  ).join('-') as `${string}-${string}-${string}-${string}-${string}`
+})
 
 // Mock localStorage
 const localStorageMock = (() => {
@@ -94,12 +101,15 @@ Object.defineProperty(window, 'sessionStorage', {
 })
 
 // Mock clipboard API
-Object.defineProperty(navigator, 'clipboard', {
-  value: {
-    writeText: vi.fn(),
-    readText: vi.fn(),
-  },
-})
+if (!navigator.clipboard) {
+  Object.defineProperty(navigator, 'clipboard', {
+    value: {
+      writeText: vi.fn(),
+      readText: vi.fn(),
+    },
+    configurable: true,
+  })
+}
 
 // Mock geolocation
 Object.defineProperty(navigator, 'geolocation', {
@@ -109,8 +119,29 @@ Object.defineProperty(navigator, 'geolocation', {
   },
 })
 
-// Mock environment variables
-process.env.NODE_ENV = 'test'
+// Mock environment variables - TypeScript-safe approach
+if (!process.env.NODE_ENV || process.env.NODE_ENV !== 'test') {
+  try {
+    Object.defineProperty(process.env, 'NODE_ENV', {
+      value: 'test',
+      writable: true,
+      configurable: true
+    })
+  } catch {
+    // If NODE_ENV is read-only, use Object.defineProperty on process.env itself
+    try {
+      Object.defineProperty(process, 'env', {
+        value: { ...process.env, NODE_ENV: 'test' },
+        writable: true,
+        configurable: true
+      })
+    } catch {
+      // Last resort: use type assertion to bypass TypeScript readonly check
+      ;(process.env as any).NODE_ENV = 'test'
+    }
+  }
+}
+
 process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test.supabase.co'
 process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key'
 process.env.NEXT_PUBLIC_APP_URL = 'http://localhost:3000'

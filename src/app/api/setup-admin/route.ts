@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase/server'
 
 // Temporary admin setup endpoint - REMOVE IN PRODUCTION
 export async function POST(request: NextRequest) {
@@ -14,7 +14,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Create admin user with Supabase
+    const supabase = await createClient()
+
+    // Create admin user with Supabase Auth
     const { data, error } = await supabase.auth.signUp({
       email,
       password,

@@ -1,12 +1,12 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import { RegisterForm } from '@/components/auth/register-form';
 import { useAuthStore } from '@/store/auth-store';
 import { Loader2 } from 'lucide-react';
 
-export default function RegisterPage() {
+function RegisterContent() {
   const router = useRouter();
   const { user, loading } = useAuthStore();
 
@@ -34,4 +34,19 @@ export default function RegisterPage() {
   }
 
   return <RegisterForm />;
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p className="text-sm text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    }>
+      <RegisterContent />
+    </Suspense>
+  );
 }

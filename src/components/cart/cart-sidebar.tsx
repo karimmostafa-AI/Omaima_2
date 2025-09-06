@@ -139,7 +139,7 @@ export function CartSidebar() {
                               variant="outline"
                               size="sm"
                               onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                              disabled={item.maxQuantity && item.quantity >= item.maxQuantity}
+                              disabled={item.maxQuantity != null && item.maxQuantity > 0 && item.quantity >= item.maxQuantity}
                               className="h-6 w-6 p-0"
                             >
                               <Plus className="h-3 w-3" />

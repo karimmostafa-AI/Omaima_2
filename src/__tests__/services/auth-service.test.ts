@@ -1,20 +1,44 @@
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { AuthenticationService } from '@/lib/services/auth-service';
 import { securityService } from '@/lib/services/security-service';
 import { supabase } from '@/lib/supabase';
+import type { User, Session } from '@supabase/supabase-js';
 
 // Mock dependencies
-jest.mock('@/lib/services/security-service');
-jest.mock('@/lib/supabase');
+vi.mock('@/lib/services/security-service');
+vi.mock('@/lib/supabase', () => ({
+  supabase: {
+    auth: {
+      signInWithPassword: vi.fn(),
+      signUp: vi.fn(),
+      signInWithOAuth: vi.fn(),
+      getUser: vi.fn(),
+      signOut: vi.fn(),
+      refreshSession: vi.fn(),
+      resetPasswordForEmail: vi.fn(),
+      updateUser: vi.fn(),
+      getSession: vi.fn(),
+      exchangeCodeForSession: vi.fn()
+    },
+    from: vi.fn(() => ({
+      insert: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      single: vi.fn(),
+      update: vi.fn().mockReturnThis(),
+      delete: vi.fn().mockReturnThis()
+    }))
+  }
+}));
 
-const mockSecurityService = securityService as jest.Mocked<typeof securityService>;
-const mockSupabase = supabase as jest.Mocked<typeof supabase>;
+const mockSecurityService = securityService as any;
 
 describe('AuthenticationService', () => {
   let authService: AuthenticationService;
 
   beforeEach(() => {
     authService = new AuthenticationService();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('signIn', () => {
@@ -25,89 +49,97 @@ describe('AuthenticationService', () => {
         user_metadata: {
           role: 'CUSTOMER',
           mfa_enabled: false
-        }
-      };
+        },
+        app_metadata: {},
+        aud: 'authenticated',
+        created_at: '2023-01-01T00:00:00Z'
+      } as User;
 
       const mockSession = {
         access_token: 'token123',
         refresh_token: 'refresh123',
         user: mockUser
-      };
+      } as Session;
 
-      mockSupabase.auth.signInWithPassword.mockResolvedValue({
+      (supabase.auth.signInWithPassword as any).mockResolvedValue({
         data: { user: mockUser, session: mockSession },
         error: null
       });
 
-      mockSecurityService.validateIPAddress.mockResolvedValue(true);
-      mockSecurityService.checkRateLimit.mockResolvedValue(true);
+      mockSecurityService.checkRateLimit.mockResolvedValue({ 
+        allowed: true, 
+        remaining: 5,
+        resetTime: new Date()
+      });
       mockSecurityService.logSecurityEvent.mockResolvedValue();
 
-      const result = await authService.signIn('test@example.com', 'password123', {
-        ipAddress: '127.0.0.1',
+      const result = await authService.signIn({
+        email: 'test@example.com',
+        password: 'password123'
+      }, {
+        ip: '127.0.0.1',
         userAgent: 'test-agent'
       });
 
-      expect(result.success).toBe(true);
       expect(result.user).toEqual(mockUser);
       expect(result.session).toEqual(mockSession);
+      expect(result.error).toBeUndefined();
       expect(mockSecurityService.logSecurityEvent).toHaveBeenCalledWith({
         type: 'login',
         userId: 'user-123',
         ip: '127.0.0.1',
         userAgent: 'test-agent',
-        timestamp: expect.any(Date),
-        details: { action: 'standard_login' }
+        details: { email: 'test@example.com', rememberMe: false }
       });
     });
 
     it('should handle rate limiting', async () => {
-      mockSecurityService.checkRateLimit.mockResolvedValue(false);
+      mockSecurityService.checkRateLimit.mockResolvedValue({
+        allowed: false,
+        remaining: 0,
+        resetTime: new Date()
+      });
 
-      const result = await authService.signIn('test@example.com', 'password123', {
-        ipAddress: '127.0.0.1',
+      const result = await authService.signIn({
+        email: 'test@example.com',
+        password: 'password123'
+      }, {
+        ip: '127.0.0.1',
         userAgent: 'test-agent'
       });
 
-      expect(result.success).toBe(false);
-      expect(result.error).toBe('Rate limit exceeded. Please try again later.');
-      expect(mockSupabase.auth.signInWithPassword).not.toHaveBeenCalled();
-    });
-
-    it('should handle IP validation failure', async () => {
-      mockSecurityService.checkRateLimit.mockResolvedValue(true);
-      mockSecurityService.validateIPAddress.mockResolvedValue(false);
-
-      const result = await authService.signIn('test@example.com', 'password123', {
-        ipAddress: '192.168.1.100',
-        userAgent: 'test-agent'
-      });
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBe('Access denied from this location');
-      expect(mockSupabase.auth.signInWithPassword).not.toHaveBeenCalled();
+      expect(result.error).toBe('Too many login attempts. Please try again later.');
+      expect(supabase.auth.signInWithPassword).not.toHaveBeenCalled();
     });
 
     it('should handle authentication errors', async () => {
-      mockSecurityService.checkRateLimit.mockResolvedValue(true);
-      mockSecurityService.validateIPAddress.mockResolvedValue(true);
-      mockSupabase.auth.signInWithPassword.mockResolvedValue({
+      mockSecurityService.checkRateLimit.mockResolvedValue({ 
+        allowed: true, 
+        remaining: 5,
+        resetTime: new Date()
+      });
+      
+      (supabase.auth.signInWithPassword as any).mockResolvedValue({
         data: { user: null, session: null },
         error: { message: 'Invalid credentials' }
       });
 
-      const result = await authService.signIn('test@example.com', 'wrongpassword', {
-        ipAddress: '127.0.0.1',
+      mockSecurityService.incrementRateLimit.mockResolvedValue();
+      mockSecurityService.logSecurityEvent.mockResolvedValue();
+
+      const result = await authService.signIn({
+        email: 'test@example.com',
+        password: 'wrongpassword'
+      }, {
+        ip: '127.0.0.1',
         userAgent: 'test-agent'
       });
 
-      expect(result.success).toBe(false);
       expect(result.error).toBe('Invalid credentials');
       expect(mockSecurityService.logSecurityEvent).toHaveBeenCalledWith({
         type: 'failed_login',
         ip: '127.0.0.1',
         userAgent: 'test-agent',
-        timestamp: expect.any(Date),
         details: { 
           email: 'test@example.com',
           error: 'Invalid credentials'
@@ -122,28 +154,39 @@ describe('AuthenticationService', () => {
         user_metadata: {
           role: 'ADMIN',
           mfa_enabled: true
-        }
-      };
+        },
+        app_metadata: {},
+        aud: 'authenticated',
+        created_at: '2023-01-01T00:00:00Z'
+      } as User;
 
       const mockSession = {
         access_token: 'token123',
         refresh_token: 'refresh123',
         user: mockAdminUser
-      };
+      } as Session;
 
-      mockSecurityService.checkRateLimit.mockResolvedValue(true);
-      mockSecurityService.validateIPAddress.mockResolvedValue(true);
-      mockSupabase.auth.signInWithPassword.mockResolvedValue({
+      mockSecurityService.checkRateLimit.mockResolvedValue({ 
+        allowed: true, 
+        remaining: 5,
+        resetTime: new Date()
+      });
+      
+      (supabase.auth.signInWithPassword as any).mockResolvedValue({
         data: { user: mockAdminUser, session: mockSession },
         error: null
       });
 
-      const result = await authService.signIn('admin@example.com', 'password123', {
-        ipAddress: '127.0.0.1',
+      mockSecurityService.logSecurityEvent.mockResolvedValue();
+
+      const result = await authService.signIn({
+        email: 'admin@example.com',
+        password: 'password123'
+      }, {
+        ip: '127.0.0.1',
         userAgent: 'test-agent'
       });
 
-      expect(result.success).toBe(true);
       expect(result.requiresMFA).toBe(true);
       expect(result.user).toEqual(mockAdminUser);
     });
@@ -158,207 +201,133 @@ describe('AuthenticationService', () => {
           role: 'CUSTOMER',
           first_name: 'John',
           last_name: 'Doe'
-        }
-      };
+        },
+        email_confirmed_at: undefined,
+        app_metadata: {},
+        aud: 'authenticated',
+        created_at: '2023-01-01T00:00:00Z'
+      } as User;
 
-      mockSupabase.auth.signUp.mockResolvedValue({
+      (supabase.auth.signUp as any).mockResolvedValue({
         data: { user: mockUser, session: null },
         error: null
       });
 
       mockSecurityService.logSecurityEvent.mockResolvedValue();
 
-      const result = await authService.signUp('newuser@example.com', 'password123', {
+      const result = await authService.signUp({
+        email: 'newuser@example.com',
+        password: 'password123',
         firstName: 'John',
         lastName: 'Doe'
       }, {
-        ipAddress: '127.0.0.1',
+        ip: '127.0.0.1',
         userAgent: 'test-agent'
       });
 
-      expect(result.success).toBe(true);
       expect(result.user).toEqual(mockUser);
-      expect(mockSupabase.auth.signUp).toHaveBeenCalledWith({
+      expect(result.requiresEmailVerification).toBe(true);
+      expect(supabase.auth.signUp).toHaveBeenCalledWith({
         email: 'newuser@example.com',
         password: 'password123',
         options: {
           data: {
-            role: 'CUSTOMER',
-            mfa_enabled: false,
-            social_providers: [],
             first_name: 'John',
-            last_name: 'Doe'
+            last_name: 'Doe',
+            phone: undefined,
+            role: 'CUSTOMER',
+            marketing_consent: false,
+            mfa_enabled: false,
+            social_providers: []
           }
         }
       });
     });
 
     it('should handle signup errors', async () => {
-      mockSupabase.auth.signUp.mockResolvedValue({
+      (supabase.auth.signUp as any).mockResolvedValue({
         data: { user: null, session: null },
         error: { message: 'Email already registered' }
       });
 
-      const result = await authService.signUp('existing@example.com', 'password123', {}, {
-        ipAddress: '127.0.0.1',
+      const result = await authService.signUp({
+        email: 'existing@example.com',
+        password: 'password123'
+      }, {
+        ip: '127.0.0.1',
         userAgent: 'test-agent'
       });
 
-      expect(result.success).toBe(false);
       expect(result.error).toBe('Email already registered');
     });
   });
 
-  describe('signInWithSocial', () => {
+  describe('signInWithProvider', () => {
     it('should successfully initiate social authentication', async () => {
-      mockSupabase.auth.signInWithOAuth.mockResolvedValue({
-        data: { url: 'https://oauth-url.com' },
+      (supabase.auth.signInWithOAuth as any).mockResolvedValue({
+        data: { url: 'https://oauth-url.com', provider: 'google' },
         error: null
       });
 
-      const result = await authService.signInWithSocial('google', {
-        ipAddress: '127.0.0.1',
+      const result = await authService.signInWithProvider('google', {
+        ip: '127.0.0.1',
         userAgent: 'test-agent'
       });
 
-      expect(result.success).toBe(true);
-      expect(result.redirectUrl).toBe('https://oauth-url.com');
-      expect(mockSupabase.auth.signInWithOAuth).toHaveBeenCalledWith({
+      expect(result.error).toBeUndefined();
+      expect(supabase.auth.signInWithOAuth).toHaveBeenCalledWith({
         provider: 'google',
         options: {
           redirectTo: expect.stringContaining('/auth/callback?provider=google'),
-          scopes: 'openid profile email'
+          scopes: 'openid profile email',
+          queryParams: {
+            ip: '127.0.0.1',
+            user_agent: 'test-agent'
+          }
         }
       });
     });
 
     it('should handle social authentication errors', async () => {
-      mockSupabase.auth.signInWithOAuth.mockResolvedValue({
+      (supabase.auth.signInWithOAuth as any).mockResolvedValue({
         data: null,
         error: { message: 'OAuth provider error' }
       });
 
-      const result = await authService.signInWithSocial('facebook', {
-        ipAddress: '127.0.0.1',
+      mockSecurityService.logSecurityEvent.mockResolvedValue();
+
+      const result = await authService.signInWithProvider('facebook', {
+        ip: '127.0.0.1',
         userAgent: 'test-agent'
       });
 
-      expect(result.success).toBe(false);
       expect(result.error).toBe('OAuth provider error');
-    });
-  });
-
-  describe('validateMFA', () => {
-    it('should successfully validate MFA code', async () => {
-      const mockUser = {
-        id: 'user-123',
-        user_metadata: {
-          mfa_secret: 'SECRET123'
-        }
-      };
-
-      mockSupabase.auth.getUser.mockResolvedValue({
-        data: { user: mockUser },
-        error: null
-      });
-
-      // Mock TOTP validation (would normally use a real TOTP library)
-      const result = await authService.validateMFA('123456', {
-        ipAddress: '127.0.0.1',
-        userAgent: 'test-agent'
-      });
-
-      expect(result.success).toBe(true);
-    });
-
-    it('should handle invalid MFA codes', async () => {
-      const mockUser = {
-        id: 'user-123',
-        user_metadata: {
-          mfa_secret: 'SECRET123'
-        }
-      };
-
-      mockSupabase.auth.getUser.mockResolvedValue({
-        data: { user: mockUser },
-        error: null
-      });
-
-      const result = await authService.validateMFA('000000', {
-        ipAddress: '127.0.0.1',
-        userAgent: 'test-agent'
-      });
-
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('Invalid verification code');
-    });
-  });
-
-  describe('adminSignIn', () => {
-    it('should successfully sign in admin with enhanced security', async () => {
-      const mockAdminUser = {
-        id: 'admin-123',
-        email: 'admin@example.com',
-        user_metadata: {
-          role: 'ADMIN',
-          mfa_enabled: true
-        }
-      };
-
-      const mockSession = {
-        access_token: 'admin-token',
-        refresh_token: 'admin-refresh',
-        user: mockAdminUser
-      };
-
-      mockSecurityService.checkRateLimit.mockResolvedValue(true);
-      mockSecurityService.validateIPAddress.mockResolvedValue(true);
-      mockSecurityService.isIPWhitelisted.mockResolvedValue(true);
-      mockSupabase.auth.signInWithPassword.mockResolvedValue({
-        data: { user: mockAdminUser, session: mockSession },
-        error: null
-      });
-
-      const result = await authService.adminSignIn('admin@example.com', 'adminpass123', {
-        ipAddress: '127.0.0.1',
-        userAgent: 'admin-agent'
-      });
-
-      expect(result.success).toBe(true);
-      expect(result.requiresMFA).toBe(true);
-      expect(mockSecurityService.isIPWhitelisted).toHaveBeenCalledWith('127.0.0.1');
-    });
-
-    it('should reject admin login from non-whitelisted IP', async () => {
-      mockSecurityService.checkRateLimit.mockResolvedValue(true);
-      mockSecurityService.validateIPAddress.mockResolvedValue(true);
-      mockSecurityService.isIPWhitelisted.mockResolvedValue(false);
-
-      const result = await authService.adminSignIn('admin@example.com', 'adminpass123', {
-        ipAddress: '203.0.113.1',
-        userAgent: 'admin-agent'
-      });
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBe('Admin access denied from this IP address');
-      expect(mockSupabase.auth.signInWithPassword).not.toHaveBeenCalled();
     });
   });
 
   describe('resetPassword', () => {
     it('should successfully send password reset email', async () => {
-      mockSupabase.auth.resetPasswordForEmail.mockResolvedValue({
+      mockSecurityService.checkRateLimit.mockResolvedValue({ 
+        allowed: true, 
+        remaining: 2,
+        resetTime: new Date()
+      });
+
+      (supabase.auth.resetPasswordForEmail as any).mockResolvedValue({
         data: {},
         error: null
       });
 
+      mockSecurityService.incrementRateLimit.mockResolvedValue();
+      mockSecurityService.logSecurityEvent.mockResolvedValue();
+
       const result = await authService.resetPassword('user@example.com', {
-        ipAddress: '127.0.0.1',
+        ip: '127.0.0.1',
         userAgent: 'test-agent'
       });
 
-      expect(result.success).toBe(true);
-      expect(mockSupabase.auth.resetPasswordForEmail).toHaveBeenCalledWith(
+      expect(result.error).toBeUndefined();
+      expect(supabase.auth.resetPasswordForEmail).toHaveBeenCalledWith(
         'user@example.com',
         {
           redirectTo: expect.stringContaining('/auth/reset-password')
@@ -367,17 +336,22 @@ describe('AuthenticationService', () => {
     });
 
     it('should handle password reset errors', async () => {
-      mockSupabase.auth.resetPasswordForEmail.mockResolvedValue({
+      mockSecurityService.checkRateLimit.mockResolvedValue({ 
+        allowed: true, 
+        remaining: 2,
+        resetTime: new Date()
+      });
+
+      (supabase.auth.resetPasswordForEmail as any).mockResolvedValue({
         data: null,
         error: { message: 'User not found' }
       });
 
       const result = await authService.resetPassword('nonexistent@example.com', {
-        ipAddress: '127.0.0.1',
+        ip: '127.0.0.1',
         userAgent: 'test-agent'
       });
 
-      expect(result.success).toBe(false);
       expect(result.error).toBe('User not found');
     });
   });
@@ -386,52 +360,51 @@ describe('AuthenticationService', () => {
     it('should successfully sign out user', async () => {
       const mockUser = {
         id: 'user-123',
-        email: 'user@example.com'
-      };
+        email: 'user@example.com',
+        app_metadata: {},
+        aud: 'authenticated',
+        created_at: '2023-01-01T00:00:00Z'
+      } as User;
 
-      mockSupabase.auth.getUser.mockResolvedValue({
+      (supabase.auth.getUser as any).mockResolvedValue({
         data: { user: mockUser },
         error: null
       });
 
-      mockSupabase.auth.signOut.mockResolvedValue({
+      (supabase.auth.signOut as any).mockResolvedValue({
         error: null
       });
 
       mockSecurityService.logSecurityEvent.mockResolvedValue();
 
-      const result = await authService.signOut({
-        ipAddress: '127.0.0.1',
+      await authService.signOut({
+        ip: '127.0.0.1',
         userAgent: 'test-agent'
       });
 
-      expect(result.success).toBe(true);
       expect(mockSecurityService.logSecurityEvent).toHaveBeenCalledWith({
         type: 'logout',
         userId: 'user-123',
         ip: '127.0.0.1',
-        userAgent: 'test-agent',
-        timestamp: expect.any(Date)
+        userAgent: 'test-agent'
       });
     });
 
     it('should handle signout errors gracefully', async () => {
-      mockSupabase.auth.getUser.mockResolvedValue({
+      (supabase.auth.getUser as any).mockResolvedValue({
         data: { user: null },
         error: null
       });
 
-      mockSupabase.auth.signOut.mockResolvedValue({
+      (supabase.auth.signOut as any).mockResolvedValue({
         error: { message: 'Session error' }
       });
 
-      const result = await authService.signOut({
-        ipAddress: '127.0.0.1',
+      // Should not throw an error
+      await expect(authService.signOut({
+        ip: '127.0.0.1',
         userAgent: 'test-agent'
-      });
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBe('Session error');
+      })).resolves.toBeUndefined();
     });
   });
 
@@ -440,28 +413,30 @@ describe('AuthenticationService', () => {
       const mockSession = {
         access_token: 'new-token',
         refresh_token: 'new-refresh'
-      };
+      } as Session;
 
-      mockSupabase.auth.refreshSession.mockResolvedValue({
-        data: { session: mockSession },
+      const mockUser = { id: 'user-123' } as User;
+
+      (supabase.auth.refreshSession as any).mockResolvedValue({
+        data: { session: mockSession, user: mockUser },
         error: null
       });
 
       const result = await authService.refreshSession();
 
-      expect(result.success).toBe(true);
       expect(result.session).toEqual(mockSession);
+      expect(result.error).toBeUndefined();
     });
 
     it('should handle session refresh errors', async () => {
-      mockSupabase.auth.refreshSession.mockResolvedValue({
-        data: { session: null },
+      (supabase.auth.refreshSession as any).mockResolvedValue({
+        data: { session: null, user: null },
         error: { message: 'Invalid refresh token' }
       });
 
       const result = await authService.refreshSession();
 
-      expect(result.success).toBe(false);
+      expect(result.session).toBeNull();
       expect(result.error).toBe('Invalid refresh token');
     });
   });

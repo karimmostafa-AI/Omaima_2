@@ -147,11 +147,11 @@ export function ProductGrid({ products }: ProductGridProps) {
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <span className="text-lg font-bold">
-                    {formatPrice(product.price)}
+                    {formatPrice(Number(product.price))}
                   </span>
                   {hasDiscount && (
                     <span className="text-sm text-muted-foreground line-through">
-                      {formatPrice(product.compareAtPrice!)}
+                      {formatPrice(Number(product.compareAtPrice))}
                     </span>
                   )}
                 </div>

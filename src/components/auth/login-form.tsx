@@ -15,15 +15,19 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
-import { useAuthStore } from '@/store/auth-store';
+import { supabase } from '@/lib/supabase/client';
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
   password: z.string().min(1, 'Password is required'),
-  rememberMe: z.boolean().default(false),
+  rememberMe: z.boolean(),
 });
 
-type LoginFormData = z.infer<typeof loginSchema>;
+type LoginFormData = {
+  email: string;
+  password: string;
+  rememberMe: boolean;
+};
 
 export function LoginForm() {
   const router = useRouter();
@@ -31,7 +35,7 @@ export function LoginForm() {
   const redirectTo = searchParams.get('redirect') || '/dashboard';
   
   const [showPassword, setShowPassword] = useState(false);
-  const { signIn, loading } = useAuthStore();
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const form = useForm<LoginFormData>({
@@ -45,14 +49,33 @@ export function LoginForm() {
 
   const onSubmit = async (data: LoginFormData) => {
     setError('');
+    setLoading(true);
     
-    const result = await signIn(data.email, data.password);
-    
-    if (result.error) {
-      setError(result.error);
-    } else {
-      // Redirect to intended page or dashboard
-      router.push(redirectTo);
+    try {
+      const { data: authData, error } = await supabase.auth.signInWithPassword({
+        email: data.email,
+        password: data.password,
+      });
+      
+      if (error) {
+        setError(error.message);
+        return;
+      }
+      
+      if (authData.user) {
+        const userRole = authData.user.user_metadata?.role || 'CUSTOMER';
+        
+        // Redirect based on role
+        if (userRole === 'ADMIN') {
+          router.push('/admin');
+        } else {
+          router.push(redirectTo);
+        }
+      }
+    } catch (err: any) {
+      setError(err.message || 'An unexpected error occurred');
+    } finally {
+      setLoading(false);
     }
   };
 

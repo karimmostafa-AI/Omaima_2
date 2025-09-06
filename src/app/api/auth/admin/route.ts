@@ -71,7 +71,6 @@ async function handleAdminLogin(
         type: 'failed_login',
         ip: clientIP,
         userAgent,
-        timestamp: new Date(),
         details: {
           reason: 'admin_rate_limit_exceeded',
           email,
@@ -102,7 +101,6 @@ async function handleAdminLogin(
         type: 'ip_blocked',
         ip: clientIP,
         userAgent,
-        timestamp: new Date(),
         details: {
           reason: 'admin_ip_not_whitelisted',
           email
@@ -138,7 +136,6 @@ async function handleAdminLogin(
         userId: result.user?.id,
         ip: clientIP,
         userAgent,
-        timestamp: new Date(),
         details: {
           reason: 'insufficient_privileges',
           email,
@@ -184,7 +181,6 @@ async function handleAdminLogin(
         userId: result.user.id,
         ip: clientIP,
         userAgent,
-        timestamp: new Date(),
         details: {
           reason: 'admin_session_creation_failed',
           email
@@ -203,7 +199,6 @@ async function handleAdminLogin(
       userId: result.user.id,
       ip: clientIP,
       userAgent,
-      timestamp: new Date(),
       details: {
         action: 'admin_login_success',
         email,
@@ -270,7 +265,6 @@ async function handleAdminValidation(
         type: 'failed_login',
         ip: clientIP,
         userAgent,
-        timestamp: new Date(),
         details: {
           reason: 'invalid_admin_session',
           action: 'session_validation'
@@ -351,4 +345,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     )
   }
-}"
+}

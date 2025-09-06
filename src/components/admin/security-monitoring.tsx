@@ -23,16 +23,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
-
-interface SecurityEvent {
-  id: string;
-  type: 'login' | 'logout' | 'failed_login' | 'admin_access' | 'mfa_enabled' | 'ip_blocked' | 'suspicious_activity';
-  userId?: string;
-  ip: string;
-  userAgent: string;
-  timestamp: Date;
-  details?: Record<string, any>;
-}
+import type { SecurityEvent } from '@/types';
 
 interface SecurityAlert {
   id: string;
@@ -114,26 +105,26 @@ export function SecurityMonitoring({ className }: SecurityMonitoringProps) {
   const getEventIcon = (type: string) => {
     switch (type) {
       case 'login':
-        return <CheckCircle className=\"h-4 w-4 text-green-500\" />;
+        return <CheckCircle className="h-4 w-4 text-green-500" />;
       case 'logout':
-        return <CheckCircle className=\"h-4 w-4 text-blue-500\" />;
+        return <CheckCircle className="h-4 w-4 text-blue-500" />;
       case 'failed_login':
-        return <AlertTriangle className=\"h-4 w-4 text-red-500\" />;
+        return <AlertTriangle className="h-4 w-4 text-red-500" />;
       case 'admin_access':
-        return <Shield className=\"h-4 w-4 text-orange-500\" />;
+        return <Shield className="h-4 w-4 text-orange-500" />;
       case 'mfa_enabled':
-        return <Shield className=\"h-4 w-4 text-green-500\" />;
+        return <Shield className="h-4 w-4 text-green-500" />;
       case 'ip_blocked':
-        return <AlertTriangle className=\"h-4 w-4 text-red-500\" />;
+        return <AlertTriangle className="h-4 w-4 text-red-500" />;
       case 'suspicious_activity':
-        return <AlertTriangle className=\"h-4 w-4 text-yellow-500\" />;
+        return <AlertTriangle className="h-4 w-4 text-yellow-500" />;
       default:
-        return <Monitor className=\"h-4 w-4 text-gray-500\" />;
+        return <Monitor className="h-4 w-4 text-gray-500" />;
     }
   };
 
   const getEventTypeLabel = (type: string) => {
-    return type.replace(/_/g, ' ').replace(/\\b\\w/g, l => l.toUpperCase());
+    return type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   };
 
   const getSeverityColor = (severity: string) => {
@@ -177,17 +168,17 @@ export function SecurityMonitoring({ className }: SecurityMonitoringProps) {
   return (
     <div className={cn('space-y-6', className)}>
       {/* Header */}
-      <div className=\"flex items-center justify-between\">
+      <div className="flex items-center justify-between">
         <div>
-          <h2 className=\"text-2xl font-bold tracking-tight\">Security Monitoring</h2>
-          <p className=\"text-muted-foreground\">
+          <h2 className="text-2xl font-bold tracking-tight">Security Monitoring</h2>
+          <p className="text-muted-foreground">
             Monitor authentication events and security alerts
           </p>
         </div>
-        <div className=\"flex items-center gap-2\">
+        <div className="flex items-center gap-2">
           <Button
-            variant=\"outline\"
-            size=\"sm\"
+            variant="outline"
+            size="sm"
             onClick={loadSecurityData}
             disabled={loading}
           >
@@ -195,11 +186,11 @@ export function SecurityMonitoring({ className }: SecurityMonitoringProps) {
             Refresh
           </Button>
           <Button
-            variant=\"outline\"
-            size=\"sm\"
+            variant="outline"
+            size="sm"
             onClick={exportEvents}
           >
-            <Download className=\"h-4 w-4 mr-2\" />
+            <Download className="h-4 w-4 mr-2" />
             Export
           </Button>
         </div>
@@ -207,11 +198,11 @@ export function SecurityMonitoring({ className }: SecurityMonitoringProps) {
 
       {/* Security Alerts */}
       {alerts.length > 0 && (
-        <Alert variant=\"destructive\">
-          <AlertTriangle className=\"h-4 w-4\" />
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
             <strong>Security Alert:</strong> {alerts.length} unresolved security alert(s) detected.
-            <Button variant=\"link\" className=\"p-0 h-auto ml-2\">
+            <Button variant="link" className="p-0 h-auto ml-2">
               View Details
             </Button>
           </AlertDescription>
@@ -219,60 +210,60 @@ export function SecurityMonitoring({ className }: SecurityMonitoringProps) {
       )}
 
       {/* Quick Stats */}
-      <div className=\"grid gap-4 md:grid-cols-4\">
+      <div className="grid gap-4 md:grid-cols-4">
         <Card>
-          <CardHeader className=\"flex flex-row items-center justify-between space-y-0 pb-2\">
-            <CardTitle className=\"text-sm font-medium\">Total Events</CardTitle>
-            <Monitor className=\"h-4 w-4 text-muted-foreground\" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Events</CardTitle>
+            <Monitor className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className=\"text-2xl font-bold\">{filteredEvents.length}</div>
-            <p className=\"text-xs text-muted-foreground\">
+            <div className="text-2xl font-bold">{filteredEvents.length}</div>
+            <p className="text-xs text-muted-foreground">
               Last {timeRange}
             </p>
           </CardContent>
         </Card>
         
         <Card>
-          <CardHeader className=\"flex flex-row items-center justify-between space-y-0 pb-2\">
-            <CardTitle className=\"text-sm font-medium\">Successful Logins</CardTitle>
-            <CheckCircle className=\"h-4 w-4 text-green-500\" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Successful Logins</CardTitle>
+            <CheckCircle className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
-            <div className=\"text-2xl font-bold\">
+            <div className="text-2xl font-bold">
               {filteredEvents.filter(e => e.type === 'login').length}
             </div>
-            <p className=\"text-xs text-muted-foreground\">
+            <p className="text-xs text-muted-foreground">
               Authentication success
             </p>
           </CardContent>
         </Card>
         
         <Card>
-          <CardHeader className=\"flex flex-row items-center justify-between space-y-0 pb-2\">
-            <CardTitle className=\"text-sm font-medium\">Failed Attempts</CardTitle>
-            <AlertTriangle className=\"h-4 w-4 text-red-500\" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Failed Attempts</CardTitle>
+            <AlertTriangle className="h-4 w-4 text-red-500" />
           </CardHeader>
           <CardContent>
-            <div className=\"text-2xl font-bold\">
+            <div className="text-2xl font-bold">
               {filteredEvents.filter(e => e.type === 'failed_login').length}
             </div>
-            <p className=\"text-xs text-muted-foreground\">
+            <p className="text-xs text-muted-foreground">
               Authentication failures
             </p>
           </CardContent>
         </Card>
         
         <Card>
-          <CardHeader className=\"flex flex-row items-center justify-between space-y-0 pb-2\">
-            <CardTitle className=\"text-sm font-medium\">Admin Access</CardTitle>
-            <Shield className=\"h-4 w-4 text-orange-500\" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Admin Access</CardTitle>
+            <Shield className="h-4 w-4 text-orange-500" />
           </CardHeader>
           <CardContent>
-            <div className=\"text-2xl font-bold\">
+            <div className="text-2xl font-bold">
               {filteredEvents.filter(e => e.type === 'admin_access').length}
             </div>
-            <p className=\"text-xs text-muted-foreground\">
+            <p className="text-xs text-muted-foreground">
               Administrative actions
             </p>
           </CardContent>
@@ -280,41 +271,41 @@ export function SecurityMonitoring({ className }: SecurityMonitoringProps) {
       </div>
 
       {/* Main Content */}
-      <Tabs defaultValue=\"events\" className=\"space-y-4\">
+      <Tabs defaultValue="events" className="space-y-4">
         <TabsList>
-          <TabsTrigger value=\"events\">Security Events</TabsTrigger>
-          <TabsTrigger value=\"alerts\">Security Alerts</TabsTrigger>
-          <TabsTrigger value=\"settings\">Settings</TabsTrigger>
+          <TabsTrigger value="events">Security Events</TabsTrigger>
+          <TabsTrigger value="alerts">Security Alerts</TabsTrigger>
+          <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
 
-        <TabsContent value=\"events\" className=\"space-y-4\">
+        <TabsContent value="events" className="space-y-4">
           {/* Filters */}
-          <div className=\"flex items-center gap-4\">
-            <div className=\"flex items-center gap-2\">
-              <Filter className=\"h-4 w-4\" />
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Filter className="h-4 w-4" />
               <select
                 value={filter}
                 onChange={(e) => setFilter(e.target.value as any)}
-                className=\"border border-input bg-background px-3 py-1 text-sm rounded-md\"
+                className="border border-input bg-background px-3 py-1 text-sm rounded-md"
               >
-                <option value=\"all\">All Events</option>
-                <option value=\"login\">Successful Logins</option>
-                <option value=\"failed_login\">Failed Logins</option>
-                <option value=\"admin_access\">Admin Access</option>
+                <option value="all">All Events</option>
+                <option value="login">Successful Logins</option>
+                <option value="failed_login">Failed Logins</option>
+                <option value="admin_access">Admin Access</option>
               </select>
             </div>
             
-            <div className=\"flex items-center gap-2\">
-              <Clock className=\"h-4 w-4\" />
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4" />
               <select
                 value={timeRange}
                 onChange={(e) => setTimeRange(e.target.value as any)}
-                className=\"border border-input bg-background px-3 py-1 text-sm rounded-md\"
+                className="border border-input bg-background px-3 py-1 text-sm rounded-md"
               >
-                <option value=\"1h\">Last Hour</option>
-                <option value=\"24h\">Last 24 Hours</option>
-                <option value=\"7d\">Last 7 Days</option>
-                <option value=\"30d\">Last 30 Days</option>
+                <option value="1h">Last Hour</option>
+                <option value="24h">Last 24 Hours</option>
+                <option value="7d">Last 7 Days</option>
+                <option value="30d">Last 30 Days</option>
               </select>
             </div>
           </div>
@@ -328,48 +319,48 @@ export function SecurityMonitoring({ className }: SecurityMonitoringProps) {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <ScrollArea className=\"h-96\">
-                <div className=\"space-y-3\">
+              <ScrollArea className="h-96">
+                <div className="space-y-3">
                   {filteredEvents.length === 0 ? (
-                    <div className=\"text-center py-8 text-muted-foreground\">
+                    <div className="text-center py-8 text-muted-foreground">
                       No events found for the selected criteria
                     </div>
                   ) : (
                     filteredEvents.map((event) => (
                       <div
                         key={event.id || `${event.timestamp}-${event.type}`}
-                        className=\"flex items-center gap-3 p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors\"
+                        className="flex items-center gap-3 p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
                       >
                         {getEventIcon(event.type)}
                         
-                        <div className=\"flex-1 min-w-0\">
-                          <div className=\"flex items-center gap-2\">
-                            <Badge variant=\"outline\" className=\"text-xs\">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="text-xs">
                               {getEventTypeLabel(event.type)}
                             </Badge>
-                            <span className=\"text-sm font-medium\">
+                            <span className="text-sm font-medium">
                               {format(new Date(event.timestamp), 'MMM d, yyyy HH:mm:ss')}
                             </span>
                           </div>
                           
-                          <div className=\"flex items-center gap-2 mt-1 text-xs text-muted-foreground\">
-                            <MapPin className=\"h-3 w-3\" />
+                          <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                            <MapPin className="h-3 w-3" />
                             <span>{event.ip}</span>
-                            <Monitor className=\"h-3 w-3 ml-2\" />
-                            <span className=\"truncate max-w-48\">
+                            <Monitor className="h-3 w-3 ml-2" />
+                            <span className="truncate max-w-48">
                               {event.userAgent.split(' ')[0]}
                             </span>
                           </div>
                           
                           {event.details && Object.keys(event.details).length > 0 && (
-                            <div className=\"mt-1 text-xs text-muted-foreground\">
+                            <div className="mt-1 text-xs text-muted-foreground">
                               {JSON.stringify(event.details, null, 0).slice(0, 100)}...
                             </div>
                           )}
                         </div>
                         
-                        <Button variant=\"ghost\" size=\"sm\">
-                          <Eye className=\"h-4 w-4\" />
+                        <Button variant="ghost" size="sm">
+                          <Eye className="h-4 w-4" />
                         </Button>
                       </div>
                     ))
@@ -380,7 +371,7 @@ export function SecurityMonitoring({ className }: SecurityMonitoringProps) {
           </Card>
         </TabsContent>
 
-        <TabsContent value=\"alerts\" className=\"space-y-4\">
+        <TabsContent value="alerts" className="space-y-4">
           <Card>
             <CardHeader>
               <CardTitle>Security Alerts</CardTitle>
@@ -390,44 +381,44 @@ export function SecurityMonitoring({ className }: SecurityMonitoringProps) {
             </CardHeader>
             <CardContent>
               {alerts.length === 0 ? (
-                <div className=\"text-center py-8\">
-                  <CheckCircle className=\"h-12 w-12 mx-auto text-green-500 mb-4\" />
-                  <h3 className=\"text-lg font-semibold mb-2\">No Active Alerts</h3>
-                  <p className=\"text-muted-foreground\">
+                <div className="text-center py-8">
+                  <CheckCircle className="h-12 w-12 mx-auto text-green-500 mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">No Active Alerts</h3>
+                  <p className="text-muted-foreground">
                     All security alerts have been resolved
                   </p>
                 </div>
               ) : (
-                <div className=\"space-y-3\">
+                <div className="space-y-3">
                   {alerts.map((alert) => (
                     <div
                       key={alert.id}
-                      className=\"p-4 rounded-lg border bg-card\"
+                      className="p-4 rounded-lg border bg-card"
                     >
-                      <div className=\"flex items-center justify-between mb-2\">
-                        <div className=\"flex items-center gap-2\">
-                          <AlertTriangle className=\"h-5 w-5 text-red-500\" />
-                          <span className=\"font-semibold\">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <AlertTriangle className="h-5 w-5 text-red-500" />
+                          <span className="font-semibold">
                             {alert.type.replace(/_/g, ' ').replace(/\\b\\w/g, l => l.toUpperCase())}
                           </span>
                           <Badge className={getSeverityColor(alert.severity)}>
                             {alert.severity.toUpperCase()}
                           </Badge>
                         </div>
-                        <span className=\"text-sm text-muted-foreground\">
+                        <span className="text-sm text-muted-foreground">
                           {format(new Date(alert.timestamp), 'MMM d, HH:mm')}
                         </span>
                       </div>
                       
-                      <p className=\"text-sm text-muted-foreground mb-3\">
+                      <p className="text-sm text-muted-foreground mb-3">
                         {JSON.stringify(alert.details)}
                       </p>
                       
-                      <div className=\"flex items-center gap-2\">
-                        <Button size=\"sm\" variant=\"outline\">
+                      <div className="flex items-center gap-2">
+                        <Button size="sm" variant="outline">
                           Investigate
                         </Button>
-                        <Button size=\"sm\" variant=\"ghost\">
+                        <Button size="sm" variant="ghost">
                           Mark Resolved
                         </Button>
                       </div>
@@ -439,7 +430,7 @@ export function SecurityMonitoring({ className }: SecurityMonitoringProps) {
           </Card>
         </TabsContent>
 
-        <TabsContent value=\"settings\" className=\"space-y-4\">
+        <TabsContent value="settings" className="space-y-4">
           <Card>
             <CardHeader>
               <CardTitle>Security Settings</CardTitle>
@@ -447,8 +438,8 @@ export function SecurityMonitoring({ className }: SecurityMonitoringProps) {
                 Configure security monitoring and alert preferences
               </CardDescription>
             </CardHeader>
-            <CardContent className=\"space-y-4\">
-              <div className=\"text-sm text-muted-foreground\">
+            <CardContent className="space-y-4">
+              <div className="text-sm text-muted-foreground">
                 Security monitoring settings would be configured here in a full implementation.
               </div>
             </CardContent>
@@ -457,4 +448,4 @@ export function SecurityMonitoring({ className }: SecurityMonitoringProps) {
       </Tabs>
     </div>
   );
-}"
+}

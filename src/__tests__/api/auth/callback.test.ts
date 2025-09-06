@@ -2,6 +2,10 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { NextRequest } from 'next/server'
 import { GET } from '@/app/api/auth/callback/route'
 
+// Hoisted mock functions
+const mockRedirect = vi.hoisted(() => vi.fn())
+const mockCookiesSet = vi.hoisted(() => vi.fn())
+
 // Mock dependencies
 vi.mock('@/lib/supabase', () => ({
   createClient: () => ({
@@ -22,9 +26,6 @@ vi.mock('@/lib/services/security-service', () => ({
 }))
 
 // Mock NextResponse
-const mockRedirect = vi.fn()
-const mockCookiesSet = vi.fn()
-
 vi.mock('next/server', async () => {
   const actual = await vi.importActual('next/server')
   return {
@@ -154,7 +155,13 @@ describe('/api/auth/callback', () => {
     })
 
     it('should set secure cookies in production', async () => {
-      process.env.NODE_ENV = 'production'
+      // Override NODE_ENV for this test using Object.defineProperty
+      const originalNodeEnv = process.env.NODE_ENV
+      Object.defineProperty(process.env, 'NODE_ENV', {
+        value: 'production',
+        writable: true,
+        configurable: true
+      })
       
       const url = 'http://localhost:3000/auth/callback?code=auth_code_123&provider=google'
       const request = new NextRequest(url)
@@ -175,6 +182,13 @@ describe('/api/auth/callback', () => {
       expect(mockCookiesSet).toHaveBeenCalledWith('sb-access-token', 'access-token-123', expect.objectContaining({
         secure: true // Production mode
       }))
+      
+      // Restore original NODE_ENV
+      Object.defineProperty(process.env, 'NODE_ENV', {
+        value: originalNodeEnv,
+        writable: true,
+        configurable: true
+      })
     })
   })
 
@@ -431,4 +445,4 @@ describe('/api/auth/callback', () => {
       )
     })
   })
-})"
+})

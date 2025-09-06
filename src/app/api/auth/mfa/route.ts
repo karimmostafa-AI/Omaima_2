@@ -94,7 +94,6 @@ async function handleEnableMFA(
       userId,
       ip: clientIP,
       userAgent,
-      timestamp: new Date(),
       details: {
         action: 'mfa_setup_initiated'
       }
@@ -144,7 +143,6 @@ async function handleDisableMFA(
         userId,
         ip: clientIP,
         userAgent,
-        timestamp: new Date(),
         details: {
           action: 'mfa_disable_failed',
           reason: 'invalid_code'
@@ -179,7 +177,6 @@ async function handleDisableMFA(
       userId,
       ip: clientIP,
       userAgent,
-      timestamp: new Date(),
       details: {
         action: 'mfa_disabled'
       }
@@ -214,7 +211,6 @@ async function handleVerifyMFA(
       userId,
       ip: clientIP,
       userAgent,
-      timestamp: new Date(),
       details: {
         action: 'mfa_verification',
         success: result.success
@@ -244,7 +240,7 @@ async function handleGenerateBackupCodes(
   userAgent: string
 ): Promise<NextResponse> {
   try {
-    const result = await authService.generateBackupCodes()
+    const result = await authService.generateBackupCodes(userId)
     
     if (result.error) {
       return NextResponse.json(
@@ -258,7 +254,6 @@ async function handleGenerateBackupCodes(
       userId,
       ip: clientIP,
       userAgent,
-      timestamp: new Date(),
       details: {
         action: 'backup_codes_generated'
       }
@@ -326,4 +321,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     )
   }
-}"
+}

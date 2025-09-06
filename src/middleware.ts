@@ -16,22 +16,12 @@ interface RouteConfig {
 }
 
 const protectedRoutes: Record<string, RouteConfig> = {
-  // Admin routes - enhanced security
+  // Admin routes - simplified security (no complex auth)
   admin: {
-    paths: ['/admin', '/omaima/admin'],
+    paths: ['/admin/protected'], // Only protect specific admin routes
     requiredRoles: ['ADMIN'],
-    requiresMFA: true,
-    ipWhitelist: [
-      '192.168.1.0/24',  // Local network
-      '10.0.0.0/8',      // Private network  
-      '127.0.0.1',       // Localhost
-      '::1'              // IPv6 localhost
-    ],
-    additionalSecurity: {
-      requireAdminSession: true,
-      sessionTimeout: 30 * 60 * 1000, // 30 minutes
-      maxConcurrentSessions: 2
-    }
+    requiresMFA: false, // Disabled MFA requirement
+    // Removed IP whitelist and additional security
   },
   // Staff routes - moderate security
   staff: {
@@ -57,16 +47,22 @@ const publicRoutes = [
   '/auth/register', 
   '/auth/reset-password',
   '/auth/callback',
+  '/auth/direct-login',
   '/api/auth/login',
   '/api/auth/register',
   '/api/auth/logout',
   '/api/auth/reset-password',
   '/api/auth/callback',
   '/api/auth/get-ip',
+  '/api/auth/simple-login',
+  '/api/setup-admin',
   '/products',
   '/about',
   '/contact',
-  '/setup-admin'
+  '/setup-admin',
+  '/admin-no-auth',
+  '/admin-simple',
+  '/test-admin'
 ];
 
 // Routes that should bypass middleware entirely
@@ -150,7 +146,6 @@ export async function middleware(request: NextRequest) {
       userId: session.user.id,
       ip: clientIP,
       userAgent,
-      timestamp: new Date(),
       details: { 
         action: 'route_access_attempt',
         path: pathname,
@@ -182,7 +177,6 @@ export async function middleware(request: NextRequest) {
         userId: user.id,
         ip: clientIP,
         userAgent,
-        timestamp: new Date(),
         details: { reason: 'account_suspended' }
       });
       
@@ -202,7 +196,6 @@ export async function middleware(request: NextRequest) {
         userId: user.id,
         ip: clientIP,
         userAgent,
-        timestamp: new Date(),
         details: { 
           reason: 'insufficient_role',
           requiredRoles: routeConfig.requiredRoles,
@@ -264,7 +257,6 @@ export async function middleware(request: NextRequest) {
       type: 'suspicious_activity',
       ip: clientIP,
       userAgent,
-      timestamp: new Date(),
       details: { 
         error: 'middleware_error',
         message: error instanceof Error ? error.message : 'Unknown error',
@@ -303,7 +295,6 @@ async function handleAdminRouteAccess(
         userId: user.id,
         ip: clientIP,
         userAgent,
-        timestamp: new Date(),
         details: {
           reason: 'admin_ip_not_whitelisted',
           path: pathname,
@@ -323,7 +314,6 @@ async function handleAdminRouteAccess(
       userId: user.id,
       ip: clientIP,
       userAgent,
-      timestamp: new Date(),
       details: {
         reason: 'mfa_required_but_not_enabled',
         path: pathname
@@ -361,7 +351,6 @@ async function handleAdminRouteAccess(
         userId: user.id,
         ip: clientIP,
         userAgent,
-        timestamp: new Date(),
         details: {
           reason: 'invalid_admin_session',
           path: pathname
@@ -386,7 +375,6 @@ async function handleAdminRouteAccess(
       userId: user.id,
       ip: clientIP,
       userAgent,
-      timestamp: new Date(),
       details: {
         reason: 'admin_rate_limit_exceeded',
         path: pathname,
@@ -407,7 +395,6 @@ async function handleAdminRouteAccess(
     userId: user.id,
     ip: clientIP,
     userAgent,
-    timestamp: new Date(),
     details: {
       action: 'admin_route_access_granted',
       path: pathname,

@@ -14,7 +14,7 @@ import {
 import { AlertTriangle, CheckCircle, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-interface SocialAuthPanelProps {
+interface SocialAuthPanelProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'onError'> {
   title?: string;
   description?: string;
   providers?: ('google' | 'facebook' | 'github' | 'apple')[];
@@ -35,7 +35,8 @@ export function SocialAuthPanel({
   dividerText = "OR",
   onSuccess,
   onError,
-  className
+  className,
+  ...rest
 }: SocialAuthPanelProps) {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -54,7 +55,6 @@ export function SocialAuthPanel({
 
   const renderProvider = (provider: 'google' | 'facebook' | 'github' | 'apple') => {
     const commonProps = {
-      key: provider,
       onSuccess: () => handleSuccess(provider),
       onError: handleError,
       className: variant === 'compact' ? 'w-full' : undefined
@@ -62,19 +62,19 @@ export function SocialAuthPanel({
 
     switch (provider) {
       case 'google':
-        return <GoogleLoginButton {...commonProps} />;
+        return <GoogleLoginButton key={provider} {...commonProps} />;
       case 'facebook':
-        return <FacebookLoginButton {...commonProps} />;
+        return <FacebookLoginButton key={provider} {...commonProps} />;
       case 'github':
-        return <GitHubLoginButton {...commonProps} />;
+        return <GitHubLoginButton key={provider} {...commonProps} />;
       case 'apple':
-        return <AppleLoginButton {...commonProps} />;
+        return <AppleLoginButton key={provider} {...commonProps} />;
     }
   };
 
   if (variant === 'compact') {
     return (
-      <div className={cn('space-y-3', className)}>
+      <div className={cn('space-y-3', className)} {...rest}>
         {showDivider && (
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
@@ -109,7 +109,7 @@ export function SocialAuthPanel({
 
   if (variant === 'grid') {
     return (
-      <Card className={className}>
+      <Card className={className} {...rest}>
         <CardHeader className="text-center">
           <CardTitle>{title}</CardTitle>
           <CardDescription>{description}</CardDescription>
@@ -139,7 +139,7 @@ export function SocialAuthPanel({
 
   // Default variant
   return (
-    <Card className={className}>
+    <Card className={className} {...rest}>
       <CardHeader className="text-center">
         <CardTitle>{title}</CardTitle>
         <CardDescription>{description}</CardDescription>

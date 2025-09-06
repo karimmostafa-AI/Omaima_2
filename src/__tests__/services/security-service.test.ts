@@ -1,4 +1,4 @@
-import { import { describe, it, expect, beforeEach, vi } from 'vitest' vi } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { SecurityService } from '@/lib/services/security-service'
 import { createClient } from '@/lib/supabase-middleware'
 
@@ -48,17 +48,53 @@ describe('SecurityService', () => {
 
   describe('IP Validation', () => {
     it('should allow localhost IPs in development', async () => {
-      process.env.NODE_ENV = 'development'
+      const originalNodeEnv = process.env.NODE_ENV
+      Object.defineProperty(process.env, 'NODE_ENV', {
+        value: 'development',
+        configurable: true,
+        enumerable: true,
+        writable: true
+      })
       
-      const isAllowed = await securityService.validateIPAddress('127.0.0.1')
-      expect(isAllowed).toBe(true)
+      try {
+        const isAllowed = await securityService.validateIPAddress('127.0.0.1')
+        expect(isAllowed).toBe(true)
+      } finally {
+        // Restore original value
+        if (originalNodeEnv !== undefined) {
+          Object.defineProperty(process.env, 'NODE_ENV', {
+            value: originalNodeEnv,
+            configurable: true,
+            enumerable: true,
+            writable: true
+          })
+        }
+      }
     })
 
     it('should allow private network IPs in development', async () => {
-      process.env.NODE_ENV = 'development'
+      const originalNodeEnv = process.env.NODE_ENV
+      Object.defineProperty(process.env, 'NODE_ENV', {
+        value: 'development',
+        configurable: true,
+        enumerable: true,
+        writable: true
+      })
       
-      const isAllowed = await securityService.validateIPAddress('192.168.1.100')
-      expect(isAllowed).toBe(true)
+      try {
+        const isAllowed = await securityService.validateIPAddress('192.168.1.100')
+        expect(isAllowed).toBe(true)
+      } finally {
+        // Restore original value
+        if (originalNodeEnv !== undefined) {
+          Object.defineProperty(process.env, 'NODE_ENV', {
+            value: originalNodeEnv,
+            configurable: true,
+            enumerable: true,
+            writable: true
+          })
+        }
+      }
     })
 
     it('should validate against custom IP ranges', async () => {
@@ -407,4 +443,4 @@ describe('SecurityService', () => {
       expect(await securityService.validateIPAddress('203.0.113.2', allowedIPs)).toBe(false)
     })
   })
-})"
+})

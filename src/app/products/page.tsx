@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { MainLayout } from '@/components/layout/main-layout'
 import { ProductGrid } from '@/components/products/product-grid'
@@ -23,7 +23,7 @@ interface ProductsPageData {
   }
 }
 
-export default function ProductsPage() {
+function ProductsContent() {
   const searchParams = useSearchParams()
   const [data, setData] = useState<ProductsPageData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -222,5 +222,13 @@ export default function ProductsPage() {
         </div>
       </div>
     </MainLayout>
+  )
+}
+
+export default function ProductsPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div>Loading...</div></div>}>
+      <ProductsContent />
+    </Suspense>
   )
 }

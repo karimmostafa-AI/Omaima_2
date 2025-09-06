@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase'
 import { securityService } from './security-service'
 import type { User, Session, Provider } from '@supabase/supabase-js'
 
@@ -113,7 +114,6 @@ export class AuthenticationService {
           type: 'failed_login',
           ip: metadata?.ip || 'unknown',
           userAgent: metadata?.userAgent || 'unknown',
-          timestamp: new Date(),
           details: { email, error: error.message }
         })
 
@@ -127,7 +127,6 @@ export class AuthenticationService {
           userId: data.user.id,
           ip: metadata?.ip || 'unknown',
           userAgent: metadata?.userAgent || 'unknown',
-          timestamp: new Date(),
           details: { email, rememberMe }
         })
 
@@ -188,7 +187,6 @@ export class AuthenticationService {
           userId: data.user.id,
           ip: metadata?.ip || 'unknown',
           userAgent: metadata?.userAgent || 'unknown',
-          timestamp: new Date(),
           details: { action: 'registration', email }
         })
 
@@ -220,8 +218,7 @@ export class AuthenticationService {
           type: 'logout',
           userId: user.id,
           ip: metadata?.ip || 'unknown',
-          userAgent: metadata?.userAgent || 'unknown',
-          timestamp: new Date()
+          userAgent: metadata?.userAgent || 'unknown'
         })
       }
     } catch (error) {
@@ -256,7 +253,6 @@ export class AuthenticationService {
         type: 'login',
         ip: metadata?.ip || 'unknown',
         userAgent: metadata?.userAgent || 'unknown',
-        timestamp: new Date(),
         details: { action: 'password_reset_request', email }
       })
 
@@ -276,15 +272,21 @@ export class AuthenticationService {
    */
   async signInWithProvider(provider: SocialProvider, metadata?: { ip?: string; userAgent?: string }): Promise<AuthResult> {
     try {
+      // Build queryParams only with defined values
+      const queryParams: { [key: string]: string } = {}
+      if (metadata?.ip) {
+        queryParams.ip = metadata.ip
+      }
+      if (metadata?.userAgent) {
+        queryParams.user_agent = metadata.userAgent
+      }
+
       const { data, error } = await this.supabase.auth.signInWithOAuth({
         provider: provider as Provider,
         options: {
           redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback?provider=${provider}`,
           scopes: this.getScopesForProvider(provider),
-          queryParams: metadata ? { 
-            ip: metadata.ip,
-            user_agent: metadata.userAgent 
-          } : undefined
+          queryParams: Object.keys(queryParams).length > 0 ? queryParams : undefined
         }
       })
 
@@ -293,7 +295,6 @@ export class AuthenticationService {
           type: 'failed_login',
           ip: metadata?.ip || 'unknown',
           userAgent: metadata?.userAgent || 'unknown',
-          timestamp: new Date(),
           details: { provider, error: error.message }
         })
         return { error: error.message }
@@ -347,7 +348,6 @@ export class AuthenticationService {
           type: 'failed_login',
           ip: metadata?.ip || 'unknown',
           userAgent: metadata?.userAgent || 'unknown',
-          timestamp: new Date(),
           details: { provider, error: error.message, action: 'oauth_callback' }
         })
         return { error: error.message }
@@ -370,7 +370,6 @@ export class AuthenticationService {
           userId: data.user.id,
           ip: metadata?.ip || 'unknown',
           userAgent: metadata?.userAgent || 'unknown',
-          timestamp: new Date(),
           details: { provider, action: 'oauth_success' }
         })
 
@@ -420,7 +419,6 @@ export class AuthenticationService {
           userId,
           ip: ipAddress,
           userAgent,
-          timestamp: new Date(),
           details: { action: 'admin_access_blocked' }
         })
         return false
@@ -476,7 +474,6 @@ export class AuthenticationService {
         userId,
         ip: ipAddress,
         userAgent,
-        timestamp: new Date(),
         details: { action: 'admin_session_created' }
       })
 
@@ -532,7 +529,7 @@ export class AuthenticationService {
       // Generate TOTP secret
       const secret = this.generateTOTPSecret()
       const qrCode = this.generateQRCode(userId, secret)
-      const backupCodes = this.generateBackupCodes()
+      const backupCodes = this.generateBackupCodesInternal()
 
       // Update user metadata
       const { error } = await this.supabase.auth.updateUser({
@@ -551,8 +548,7 @@ export class AuthenticationService {
         type: 'mfa_enabled',
         userId,
         ip: 'unknown',
-        userAgent: 'unknown',
-        timestamp: new Date()
+        userAgent: 'unknown'
       })
 
       return { secret, qrCode, backupCodes }
@@ -577,7 +573,6 @@ export class AuthenticationService {
           userId,
           ip: 'unknown',
           userAgent: 'unknown',
-          timestamp: new Date(),
           details: { action: 'mfa_verified' }
         })
       }
@@ -618,7 +613,51 @@ export class AuthenticationService {
     return `otpauth://totp/${label}?secret=${secret}&issuer=${issuer}`
   }
 
-  private generateBackupCodes(): string[] {
+  /**
+   * Generate new backup codes for MFA
+   * Made public to be accessible from API routes
+   */
+  public async generateBackupCodes(userId?: string): Promise<{
+    codes?: string[]
+    error?: string
+  }> {
+    try {
+      const supabase = createClient()
+      
+      // Get the user if userId is not provided
+      const targetUserId = userId || (await this.getCurrentUser())?.id
+      
+      if (!targetUserId) {
+        return { error: 'User not found' }
+      }
+
+      // Generate 10 backup codes
+      const codes = Array.from({ length: 10 }, () => 
+        Math.random().toString(36).substring(2, 10).toUpperCase()
+      )
+
+      // Store backup codes in user metadata
+      const { error } = await supabase.auth.updateUser({
+        data: {
+          backup_codes: codes
+        }
+      })
+
+      if (error) {
+        return { error: error.message }
+      }
+
+      return { codes }
+    } catch (error) {
+      console.error('Generate backup codes error:', error)
+      return { error: 'Failed to generate backup codes' }
+    }
+  }
+
+  /**
+   * Generate backup codes for internal use (kept for backward compatibility)
+   */
+  private generateBackupCodesInternal(): string[] {
     const codes = []
     for (let i = 0; i < 10; i++) {
       let code = ''

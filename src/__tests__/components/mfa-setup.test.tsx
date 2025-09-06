@@ -1,37 +1,37 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { vi } from 'vitest';
 import { MFASetup } from '@/components/auth/mfa-setup';
-import { useAuthStore } from '@/store/auth-store';
 
 // Mock the auth store
-jest.mock('@/store/auth-store');
-
 const mockAuthStore = {
   user: {
     id: 'user-123',
     email: 'test@example.com',
     role: 'ADMIN'
   },
-  enableMFA: jest.fn(),
-  verifyMFA: jest.fn(),
-  generateBackupCodes: jest.fn(),
+  enableMFA: vi.fn(),
+  verifyMFA: vi.fn(),
+  generateBackupCodes: vi.fn(),
   loading: false
 };
 
-(useAuthStore as jest.Mock).mockReturnValue(mockAuthStore);
+vi.mock('@/store/auth-store', () => ({
+  useAuthStore: vi.fn(() => mockAuthStore)
+}));
 
 // Mock QR code generation
-jest.mock('qrcode', () => ({
-  toDataURL: jest.fn().mockResolvedValue('data:image/png;base64,mockqrcode')
+vi.mock('qrcode', () => ({
+  toDataURL: vi.fn().mockResolvedValue('data:image/png;base64,mockqrcode')
 }));
 
 describe('MFASetup Component', () => {
-  const mockOnComplete = jest.fn();
-  const mockOnCancel = jest.fn();
+  const mockOnComplete = vi.fn();
+  const mockOnCancel = vi.fn();
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('should render initial setup step', () => {

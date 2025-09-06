@@ -47,18 +47,15 @@ export async function GET(request: NextRequest) {
         role: true,
         isActive: true,
         emailVerified: true,
-        avatar: true,
-        address: true,
         preferences: true,
         createdAt: true,
         updatedAt: true,
-        lastLoginAt: true,
+        lastLogin: true,
         // Include related data based on role
         savedDesigns: {
           select: {
             id: true,
             name: true,
-            imageUrl: true,
             createdAt: true,
           },
           orderBy: { createdAt: 'desc' },
@@ -69,7 +66,7 @@ export async function GET(request: NextRequest) {
             id: true,
             orderNumber: true,
             status: true,
-            total: true,
+            totalAmount: true,
             createdAt: true,
           },
           orderBy: { createdAt: 'desc' },
@@ -132,8 +129,7 @@ export async function PUT(request: NextRequest) {
         lastName: true,
         phone: true,
         role: true,
-        avatar: true,
-        address: true,
+        avatarUrl: true,
         preferences: true,
         updatedAt: true,
       }
@@ -162,7 +158,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json(
         { 
           error: 'Invalid input data',
-          details: error.errors.map(err => ({
+          details: error.issues.map(err => ({
             field: err.path.join('.'),
             message: err.message
           }))

@@ -53,7 +53,6 @@ export async function POST(request: NextRequest) {
         role: true,
         isActive: true,
         emailVerified: true,
-        avatar: true,
         createdAt: true,
       }
     });
@@ -75,7 +74,7 @@ export async function POST(request: NextRequest) {
     // Update last login time
     await prisma.user.update({
       where: { id: user.id },
-      data: { lastLoginAt: new Date() }
+      data: { lastLogin: new Date() }
     });
 
     // Create response with user data
@@ -90,7 +89,6 @@ export async function POST(request: NextRequest) {
         role: user.role,
         isActive: user.isActive,
         emailVerified: user.emailVerified,
-        avatar: user.avatar,
         createdAt: user.createdAt,
       },
       session: {
@@ -128,7 +126,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { 
           error: 'Invalid input data',
-          details: error.errors.map(err => ({
+          details: error.issues.map(err => ({
             field: err.path.join('.'),
             message: err.message
           }))

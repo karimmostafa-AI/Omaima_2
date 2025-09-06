@@ -2,6 +2,19 @@
 // Core Database Types
 // =============================================
 
+// Security Types
+// =============================================
+
+export interface SecurityEvent {
+  id: string;
+  type: 'login' | 'logout' | 'failed_login' | 'admin_access' | 'mfa_enabled' | 'ip_blocked' | 'suspicious_activity';
+  userId?: string;
+  ip: string;
+  userAgent: string;
+  timestamp: Date;
+  details?: Record<string, any>;
+}
+
 export interface User {
   id: string;
   email: string;

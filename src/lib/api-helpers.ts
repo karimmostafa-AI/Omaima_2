@@ -38,7 +38,7 @@ export function validationErrorResponse(error: ZodError): NextResponse<ApiRespon
     'Validation failed',
     422,
     'VALIDATION_ERROR',
-    error.errors
+    error.issues
   )
 }
 
@@ -128,7 +128,7 @@ export function withErrorHandler<T extends any[]>(
       
       return internalServerErrorResponse(
         process.env.NODE_ENV === 'development' 
-          ? error.message 
+          ? (error instanceof Error ? error.message : 'Unknown error')
           : 'Internal server error'
       )
     }

@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware'
 import { supabase } from '@/lib/supabase'
 import type { User, Session } from '@supabase/supabase-js'
 import type { Provider } from '@supabase/supabase-js'
+import type { SecurityEvent } from '@/types'
 
 type SocialProvider = 'google' | 'facebook' | 'github' | 'apple'
 type SecurityLevel = 'basic' | 'enhanced' | 'admin'
@@ -37,15 +38,6 @@ interface LinkedAccount {
   providerId: string
   email: string
   connectedAt: Date
-}
-
-interface SecurityEvent {
-  type: 'login' | 'logout' | 'failed_login' | 'admin_access' | 'mfa_enabled' | 'ip_blocked'
-  userId?: string
-  ip: string
-  userAgent: string
-  timestamp: Date
-  details?: Record<string, any>
 }
 
 interface AuthResult {
@@ -120,7 +112,7 @@ interface AuthStore {
   generateBackupCodes: () => Promise<{ codes: string[]; error?: string }>
   
   // Security Monitoring
-  logSecurityEvent: (event: Omit<SecurityEvent, 'timestamp'>) => Promise<void>
+  logSecurityEvent: (event: Omit<SecurityEvent, 'timestamp' | 'id'>) => Promise<void>
   getSecurityEvents: () => Promise<SecurityEvent[]>
   checkSuspiciousActivity: () => Promise<{ suspicious: boolean; details?: string }>
   
@@ -697,9 +689,10 @@ export const useAuthStore = create<AuthStore>()(
       },
 
       // Security Monitoring
-      logSecurityEvent: async (event: Omit<SecurityEvent, 'timestamp'>) => {
+      logSecurityEvent: async (event: Omit<SecurityEvent, 'timestamp' | 'id'>) => {
         try {
           const fullEvent: SecurityEvent = {
+            id: crypto.randomUUID(), // Always generate an ID
             ...event,
             timestamp: new Date()
           }
@@ -720,6 +713,7 @@ export const useAuthStore = create<AuthStore>()(
         try {
           const events = JSON.parse(localStorage.getItem('security_events') || '[]')
           return events.map((event: any) => ({
+            id: event.id || crypto.randomUUID(), // Ensure all events have an ID
             ...event,
             timestamp: new Date(event.timestamp)
           }))
