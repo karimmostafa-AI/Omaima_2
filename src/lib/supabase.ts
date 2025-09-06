@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { PrismaClient } from '@prisma/client'
 
 // =============================================
@@ -8,35 +8,52 @@ import { PrismaClient } from '@prisma/client'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables')
+// Check if we're in demo mode (missing or demo environment variables)
+const isDemoMode = !supabaseUrl || !supabaseAnonKey || 
+                  supabaseUrl.includes('demo') || 
+                  supabaseUrl === 'https://your-project.supabase.co'
+
+if (isDemoMode) {
+  console.log('🚀 Running in demo mode - using mock authentication')
+} else if (!supabaseUrl || !supabaseAnonKey) {
+  console.warn('⚠️ Missing Supabase environment variables - check your .env.local file')
 }
 
 // Client-side Supabase client
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-    detectSessionInUrl: true
-  },
-  realtime: {
-    params: {
-      eventsPerSecond: 10
-    }
-  }
-})
+export const supabase = isDemoMode 
+  ? createSupabaseClient('https://demo.supabase.co', 'demo-key', {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true
+      }
+    })
+  : createSupabaseClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true
+      },
+      realtime: {
+        params: {
+          eventsPerSecond: 10
+        }
+      }
+    })
 
-// Server-side Supabase client with service role key
-export const supabaseAdmin = createClient(
-  supabaseUrl,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    }
-  }
-)
+// Server-side Supabase client with service role key (optional)
+export const supabaseAdmin = process.env.SUPABASE_SERVICE_ROLE_KEY 
+  ? createSupabaseClient(
+      supabaseUrl,
+      process.env.SUPABASE_SERVICE_ROLE_KEY,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    )
+  : null
 
 // =============================================
 // Prisma Configuration
@@ -57,11 +74,16 @@ if (process.env.NODE_ENV !== 'production') {
   globalThis.__prisma = prisma
 }
 
-// Handle graceful shutdown
-if (typeof window === 'undefined') {
-  process.on('beforeExit', async () => {
-    await prisma.$disconnect()
-  })
+// Handle graceful shutdown (only in Node.js environment, not Edge Runtime)
+if (typeof window === 'undefined' && typeof process !== 'undefined' && process.on) {
+  try {
+    process.on('beforeExit', async () => {
+      await prisma.$disconnect()
+    })
+  } catch (error) {
+    // Ignore errors in Edge Runtime environment
+    console.debug('Process handlers not available in Edge Runtime')
+  }
 }
 
 // =============================================
@@ -85,7 +107,24 @@ export async function getAuthenticatedUser() {
  * Create or get Supabase client for server-side operations
  */
 export function createServerClient(req?: Request) {
-  return createClient(
+  return createSupabaseClient(
+    supabaseUrl,
+    supabaseAnonKey,
+    {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
+      },
+    }
+  )
+}
+
+/**
+ * Create Supabase client for middleware (alias for createServerClient)
+ */
+export function createClient(req?: Request) {
+  return createSupabaseClient(
     supabaseUrl,
     supabaseAnonKey,
     {

@@ -2,7 +2,7 @@
 
 import { useEffect, ComponentType } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAppStore } from '@/store/app';
+import { useAuthStore } from '@/store/auth-store';
 import { UserRole } from '@prisma/client';
 import { Loader2 } from 'lucide-react';
 

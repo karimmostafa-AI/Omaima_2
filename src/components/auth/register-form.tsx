@@ -14,7 +14,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
-import { useAppStore } from '@/store/app';
+import { useAuthStore } from '@/store/auth-store';
 
 const registerSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),
@@ -44,11 +44,8 @@ export function RegisterForm() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [registrationComplete, setRegistrationComplete] = useState(false);
   
-  const { register, isLoading, authError } = useAppStore((state) => ({
-    register: state.register,
-    isLoading: state.isLoading,
-    authError: state.authError,
-  }));
+  const { signUp, loading } = useAuthStore();
+  const [error, setError] = useState('');
 
   const form = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
@@ -63,24 +60,23 @@ export function RegisterForm() {
   });
 
   const onSubmit = async (data: RegisterFormData) => {
-    try {
-      await register({
-        firstName: data.firstName,
-        lastName: data.lastName,
-        email: data.email,
-        password: data.password,
-        phone: data.phone || undefined,
-      });
-      
+    setError('');
+    
+    const result = await signUp(data.email, data.password, {
+      first_name: data.firstName,
+      last_name: data.lastName,
+      phone: data.phone || undefined,
+    });
+    
+    if (result.error) {
+      setError(result.error);
+    } else {
       setRegistrationComplete(true);
       
       // Redirect to login page after successful registration
       setTimeout(() => {
         router.push(`/auth/login${redirectTo !== '/dashboard' ? `?redirect=${encodeURIComponent(redirectTo)}` : ''}`);
       }, 3000);
-    } catch (error) {
-      // Error is handled by the store and displayed via authError
-      console.error('Registration failed:', error);
     }
   };
 
@@ -135,9 +131,9 @@ export function RegisterForm() {
 
         <CardContent>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            {authError && (
+            {error && (
               <Alert variant="destructive">
-                <AlertDescription>{authError}</AlertDescription>
+                <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
 
@@ -148,7 +144,7 @@ export function RegisterForm() {
                   id="firstName"
                   placeholder="John"
                   {...form.register('firstName')}
-                  disabled={isLoading}
+                  disabled={loading}
                   className={form.formState.errors.firstName ? 'border-red-500' : ''}
                 />
                 {form.formState.errors.firstName && (
@@ -164,7 +160,7 @@ export function RegisterForm() {
                   id="lastName"
                   placeholder="Doe"
                   {...form.register('lastName')}
-                  disabled={isLoading}
+                  disabled={loading}
                   className={form.formState.errors.lastName ? 'border-red-500' : ''}
                 />
                 {form.formState.errors.lastName && (
@@ -182,7 +178,7 @@ export function RegisterForm() {
                 type="email"
                 placeholder="john.doe@example.com"
                 {...form.register('email')}
-                disabled={isLoading}
+                disabled={loading}
                 className={form.formState.errors.email ? 'border-red-500' : ''}
               />
               {form.formState.errors.email && (
@@ -199,7 +195,7 @@ export function RegisterForm() {
                 type="tel"
                 placeholder="+1 (555) 123-4567"
                 {...form.register('phone')}
-                disabled={isLoading}
+                disabled={loading}
                 className={form.formState.errors.phone ? 'border-red-500' : ''}
               />
               {form.formState.errors.phone && (
@@ -217,7 +213,7 @@ export function RegisterForm() {
                   type={showPassword ? 'text' : 'password'}
                   placeholder="Create a strong password"
                   {...form.register('password')}
-                  disabled={isLoading}
+                  disabled={loading}
                   className={form.formState.errors.password ? 'border-red-500 pr-10' : 'pr-10'}
                 />
                 <Button
@@ -226,7 +222,7 @@ export function RegisterForm() {
                   size="sm"
                   className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                   onClick={() => setShowPassword(!showPassword)}
-                  disabled={isLoading}
+                  disabled={loading}
                 >
                   {showPassword ? (
                     <EyeOff className="h-4 w-4" />
@@ -250,7 +246,7 @@ export function RegisterForm() {
                   type={showConfirmPassword ? 'text' : 'password'}
                   placeholder="Confirm your password"
                   {...form.register('confirmPassword')}
-                  disabled={isLoading}
+                  disabled={loading}
                   className={form.formState.errors.confirmPassword ? 'border-red-500 pr-10' : 'pr-10'}
                 />
                 <Button
@@ -259,7 +255,7 @@ export function RegisterForm() {
                   size="sm"
                   className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  disabled={isLoading}
+                  disabled={loading}
                 >
                   {showConfirmPassword ? (
                     <EyeOff className="h-4 w-4" />
@@ -278,9 +274,9 @@ export function RegisterForm() {
             <Button 
               type="submit" 
               className="w-full" 
-              disabled={isLoading}
+              disabled={loading}
             >
-              {isLoading ? (
+              {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Creating account...

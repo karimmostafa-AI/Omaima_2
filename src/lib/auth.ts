@@ -1,26 +1,27 @@
-import { createClient } from '@/lib/supabase';
-import { prisma } from '@/lib/supabase';
-import { User, UserRole } from '@prisma/client';
-import { redirect } from 'next/navigation';
-import { headers } from 'next/headers';
+// Temporary simplified auth service for development
+// TODO: Integrate with Supabase database when configured
+
+import { createClient } from '@/lib/supabase-middleware'
+import { User } from '@/types'
+import { NextRequest } from 'next/server'
 
 export type AuthUser = {
   id: string;
   email: string;
-  firstName: string;
-  lastName: string;
-  role: UserRole;
+  firstName?: string;
+  lastName?: string;
+  role: 'CUSTOMER' | 'STAFF' | 'ADMIN';
   isActive: boolean;
   emailVerified: boolean;
-  avatar: string | null;
+  avatar?: string | null;
   createdAt: Date;
   updatedAt: Date;
-  lastLoginAt: Date | null;
+  lastLoginAt?: Date | null;
 };
 
 /**
- * Get current authenticated user on the server side
- * This function can be used in server components and API routes
+ * Get current authenticated user from Supabase
+ * This is a simplified version for development
  */
 export async function getCurrentUser(): Promise<AuthUser | null> {
   try {
@@ -31,28 +32,20 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
       return null;
     }
 
-    const dbUser = await prisma.user.findUnique({
-      where: { id: user.id },
-      select: {
-        id: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-        role: true,
-        isActive: true,
-        emailVerified: true,
-        avatar: true,
-        createdAt: true,
-        updatedAt: true,
-        lastLoginAt: true,
-      },
-    });
-
-    if (!dbUser) {
-      return null;
-    }
-
-    return dbUser;
+    // Return a simplified user object for development
+    return {
+      id: user.id,
+      email: user.email || '',
+      firstName: user.user_metadata?.first_name || '',
+      lastName: user.user_metadata?.last_name || '',
+      role: user.user_metadata?.role || 'CUSTOMER',
+      isActive: true,
+      emailVerified: !!user.email_confirmed_at,
+      avatar: user.user_metadata?.avatar_url || null,
+      createdAt: new Date(user.created_at),
+      updatedAt: new Date(user.updated_at || user.created_at),
+      lastLoginAt: user.last_sign_in_at ? new Date(user.last_sign_in_at) : null,
+    };
   } catch (error) {
     console.error('Error getting current user:', error);
     return null;
@@ -60,58 +53,69 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
 }
 
 /**
- * Get current user with authentication requirement
- * Redirects to login if user is not authenticated
+ * Get authenticated user from middleware/API routes
  */
-export async function requireAuth(): Promise<AuthUser> {
-  const user = await getCurrentUser();
+export async function getAuthenticatedUser(request?: NextRequest): Promise<User | null> {
+  try {
+    const user = await getCurrentUser();
+    if (!user) return null;
+
+    // Convert to legacy User type for compatibility
+    return {
+      id: user.id,
+      email: user.email,
+      first_name: user.firstName || undefined,
+      last_name: user.lastName || undefined,
+      phone: undefined,
+      avatar_url: user.avatar || undefined,
+      role: user.role.toLowerCase() as 'customer' | 'admin' | 'staff',
+      email_verified: user.emailVerified,
+      created_at: user.createdAt.toISOString(),
+      updated_at: user.updatedAt.toISOString(),
+      last_login: user.lastLoginAt?.toISOString(),
+      is_active: user.isActive,
+      preferences: {
+        currency: 'USD',
+        language: 'en',
+        notifications: {
+          email: true,
+          sms: false,
+          marketing: false
+        },
+        theme: 'light' as const
+      }
+    };
+  } catch (error) {
+    console.error('Error getting authenticated user:', error);
+    return null;
+  }
+}
+
+// Role-based access control
+export function requireRole(user: User | null, requiredRole: 'customer' | 'staff' | 'admin'): boolean {
+  if (!user) return false
   
-  if (!user) {
-    redirect('/auth/login');
+  const roleHierarchy = {
+    customer: 1,
+    staff: 2,
+    admin: 3
   }
-
-  return user;
+  
+  return roleHierarchy[user.role] >= roleHierarchy[requiredRole]
 }
 
-/**
- * Require specific role for access
- * Redirects to appropriate page if user doesn't have required role
- */
-export async function requireRole(allowedRoles: UserRole[]): Promise<AuthUser> {
-  const user = await requireAuth();
-
-  if (!allowedRoles.includes(user.role)) {
-    // Redirect based on user role
-    if (user.role === 'ADMIN') {
-      redirect('/admin');
-    } else if (user.role === 'STAFF') {
-      redirect('/staff');
-    } else {
-      redirect('/dashboard');
-    }
-  }
-
-  return user;
+export function requireAdmin(user: User | null): boolean {
+  return user?.role === 'admin'
 }
 
-/**
- * Require admin access
- */
-export async function requireAdmin(): Promise<AuthUser> {
-  return requireRole(['ADMIN']);
-}
-
-/**
- * Require staff or admin access
- */
-export async function requireStaff(): Promise<AuthUser> {
-  return requireRole(['STAFF', 'ADMIN']);
+export function requireStaffOrAdmin(user: User | null): boolean {
+  return user?.role === 'staff' || user?.role === 'admin'
 }
 
 /**
  * Check if user has specific role
  */
-export function hasRole(user: AuthUser | null, allowedRoles: UserRole[]): boolean {
+export function hasRole(user: AuthUser | null, allowedRoles: string[]): boolean {
   if (!user) return false;
   return allowedRoles.includes(user.role);
 }
@@ -131,58 +135,7 @@ export function isStaff(user: AuthUser | null): boolean {
 }
 
 /**
- * Get user info from middleware headers
- * This is useful in server components when middleware has already verified the user
- */
-export function getUserFromHeaders() {
-  const headersList = headers();
-  const userId = headersList.get('x-user-id');
-  const userRole = headersList.get('x-user-role') as UserRole;
-  const userEmail = headersList.get('x-user-email');
-
-  if (!userId || !userRole || !userEmail) {
-    return null;
-  }
-
-  return {
-    id: userId,
-    role: userRole,
-    email: userEmail,
-  };
-}
-
-/**
- * Create or update user profile in database after Supabase auth
- */
-export async function syncUserWithDatabase(supabaseUser: any): Promise<User> {
-  const { id, email, user_metadata } = supabaseUser;
-
-  return await prisma.user.upsert({
-    where: { id },
-    create: {
-      id,
-      email,
-      firstName: user_metadata?.first_name || '',
-      lastName: user_metadata?.last_name || '',
-      phone: user_metadata?.phone || null,
-      role: 'CUSTOMER', // Default role
-      isActive: true,
-      emailVerified: !!supabaseUser.email_confirmed_at,
-    },
-    update: {
-      email,
-      emailVerified: !!supabaseUser.email_confirmed_at,
-      lastLoginAt: new Date(),
-      // Only update metadata if it exists and is different
-      ...(user_metadata?.first_name && { firstName: user_metadata.first_name }),
-      ...(user_metadata?.last_name && { lastName: user_metadata.last_name }),
-      ...(user_metadata?.phone && { phone: user_metadata.phone }),
-    },
-  });
-}
-
-/**
- * Sign out user from both Supabase and clear session
+ * Sign out user from Supabase
  */
 export async function signOut(): Promise<void> {
   const supabase = createClient();

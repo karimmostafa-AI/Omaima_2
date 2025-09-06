@@ -1,6 +1,8 @@
+'use client';
+
 import { Suspense } from 'react';
 import { RegisterForm } from '@/components/auth/register-form';
-import { withGuestOnly } from '@/components/auth/with-auth';
+import { withGuestOnly } from '@/components/auth/auth-wrapper';
 import { Loader2 } from 'lucide-react';
 
 function RegisterPageContent() {

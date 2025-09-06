@@ -1,6 +1,8 @@
+'use client';
+
 import { Suspense } from 'react';
 import { LoginForm } from '@/components/auth/login-form';
-import { withGuestOnly } from '@/components/auth/with-auth';
+import { withGuestOnly } from '@/components/auth/auth-wrapper';
 import { Loader2 } from 'lucide-react';
 
 function LoginPageContent() {

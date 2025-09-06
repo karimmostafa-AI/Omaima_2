@@ -15,7 +15,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
-import { useAppStore } from '@/store/app';
+import { useAuthStore } from '@/store/auth-store';
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -31,11 +31,8 @@ export function LoginForm() {
   const redirectTo = searchParams.get('redirect') || '/dashboard';
   
   const [showPassword, setShowPassword] = useState(false);
-  const { login, isLoading, authError } = useAppStore((state) => ({
-    login: state.login,
-    isLoading: state.isLoading,
-    authError: state.authError,
-  }));
+  const { signIn, loading } = useAuthStore();
+  const [error, setError] = useState('');
 
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -47,14 +44,15 @@ export function LoginForm() {
   });
 
   const onSubmit = async (data: LoginFormData) => {
-    try {
-      await login(data.email, data.password);
-      
+    setError('');
+    
+    const result = await signIn(data.email, data.password);
+    
+    if (result.error) {
+      setError(result.error);
+    } else {
       // Redirect to intended page or dashboard
       router.push(redirectTo);
-    } catch (error) {
-      // Error is handled by the store and displayed via authError
-      console.error('Login failed:', error);
     }
   };
 
@@ -72,9 +70,9 @@ export function LoginForm() {
 
         <CardContent>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            {authError && (
+            {error && (
               <Alert variant="destructive">
-                <AlertDescription>{authError}</AlertDescription>
+                <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
 
@@ -85,7 +83,7 @@ export function LoginForm() {
                 type="email"
                 placeholder="Enter your email"
                 {...form.register('email')}
-                disabled={isLoading}
+                disabled={loading}
                 className={form.formState.errors.email ? 'border-red-500' : ''}
               />
               {form.formState.errors.email && (
@@ -103,7 +101,7 @@ export function LoginForm() {
                   type={showPassword ? 'text' : 'password'}
                   placeholder="Enter your password"
                   {...form.register('password')}
-                  disabled={isLoading}
+                  disabled={loading}
                   className={form.formState.errors.password ? 'border-red-500 pr-10' : 'pr-10'}
                 />
                 <Button
@@ -112,7 +110,7 @@ export function LoginForm() {
                   size="sm"
                   className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                   onClick={() => setShowPassword(!showPassword)}
-                  disabled={isLoading}
+                  disabled={loading}
                 >
                   {showPassword ? (
                     <EyeOff className="h-4 w-4" />
@@ -135,7 +133,7 @@ export function LoginForm() {
                 onCheckedChange={(checked) => 
                   form.setValue('rememberMe', Boolean(checked))
                 }
-                disabled={isLoading}
+                disabled={loading}
               />
               <Label
                 htmlFor="rememberMe"
@@ -148,9 +146,9 @@ export function LoginForm() {
             <Button 
               type="submit" 
               className="w-full" 
-              disabled={isLoading}
+              disabled={loading}
             >
-              {isLoading ? (
+              {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Signing in...
