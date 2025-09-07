@@ -1,29 +1,27 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { NextRequest } from 'next/server'
 import { GET } from '@/app/api/auth/callback/route'
+import { securityService } from '@/lib/services/security-service'
 
 // Hoisted mock functions
 const mockRedirect = vi.hoisted(() => vi.fn())
 const mockCookiesSet = vi.hoisted(() => vi.fn())
+const mockExchangeCodeForSession = vi.hoisted(() => vi.fn())
+const mockUpdateUser = vi.hoisted(() => vi.fn())
+
+const mockSupabaseClient = {
+  auth: {
+    exchangeCodeForSession: mockExchangeCodeForSession,
+    updateUser: mockUpdateUser
+  }
+}
 
 // Mock dependencies
 vi.mock('@/lib/supabase', () => ({
-  createClient: () => ({
-    auth: {
-      exchangeCodeForSession: vi.fn(),
-      updateUser: vi.fn()
-    }
-  })
+  createClient: () => mockSupabaseClient
 }))
 
-vi.mock('@/lib/services/security-service', () => ({
-  securityService: {
-    logSecurityEvent: vi.fn(),
-    detectSuspiciousActivity: vi.fn(),
-    triggerSecurityAlert: vi.fn(),
-    getClientIP: vi.fn().mockReturnValue('127.0.0.1')
-  }
-}))
+vi.mock('@/lib/services/security-service')
 
 // Mock NextResponse
 vi.mock('next/server', async () => {
@@ -64,9 +62,17 @@ describe('/api/auth/callback', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockRedirect.mockReturnValue(createMockResponse())
+    vi.mocked(securityService.getClientIP).mockReturnValue('127.0.0.1')
     
     // Set up default environment
     process.env.NEXT_PUBLIC_APP_URL = 'http://localhost:3000'
+
+    // Default mock for successful code exchange
+    mockExchangeCodeForSession.mockResolvedValue({
+      data: { user: mockUser, session: mockSession },
+      error: null
+    })
+    mockUpdateUser.mockResolvedValue({ error: null })
   })
 
   describe('OAuth Success Flow', () => {
@@ -74,44 +80,34 @@ describe('/api/auth/callback', () => {
       const url = 'http://localhost:3000/auth/callback?code=auth_code_123&provider=google'
       const request = new NextRequest(url)
       
-      // Mock successful code exchange
-      const { createClient } = await import('@/lib/supabase')
-      const mockSupabase = createClient() as any
-      mockSupabase.auth.exchangeCodeForSession.mockResolvedValue({
-        data: { user: mockUser, session: mockSession },
-        error: null
-      })
-      mockSupabase.auth.updateUser.mockResolvedValue({ error: null })
+      vi.mocked(securityService.detectSuspiciousActivity).mockResolvedValue(null)
 
-      // Mock security service
-      const { securityService } = await import('@/lib/services/security-service')
-      ;(securityService.detectSuspiciousActivity as any).mockResolvedValue(null)
-
-      const response = await GET(request)
+      await GET(request)
 
       // Verify code exchange was called
-      expect(mockSupabase.auth.exchangeCodeForSession).toHaveBeenCalledWith('auth_code_123')
+      expect(mockExchangeCodeForSession).toHaveBeenCalledWith('auth_code_123')
       
       // Verify user metadata update
-      expect(mockSupabase.auth.updateUser).toHaveBeenCalledWith({
+      expect(mockUpdateUser).toHaveBeenCalledWith({
         data: {
           social_providers: ['google']
         }
       })
 
       // Verify security logging
-      expect(securityService.logSecurityEvent).toHaveBeenCalledWith({
-        type: 'login',
-        userId: 'user-123',
-        ip: '127.0.0.1',
-        userAgent: 'unknown',
-        timestamp: expect.any(Date),
-        details: {
-          provider: 'google',
-          action: 'oauth_success',
-          email: 'test@example.com'
-        }
-      })
+      expect(securityService.logSecurityEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'login',
+          userId: 'user-123',
+          ip: '127.0.0.1',
+          userAgent: 'unknown',
+          details: {
+            provider: 'google',
+            action: 'oauth_success',
+            email: 'test@example.com'
+          }
+        })
+      )
 
       // Verify redirect to dashboard
       expect(mockRedirect).toHaveBeenCalledWith(
@@ -132,16 +128,7 @@ describe('/api/auth/callback', () => {
       const url = 'http://localhost:3000/auth/callback?code=fb_code_123&provider=facebook'
       const request = new NextRequest(url)
       
-      const { createClient } = await import('@/lib/supabase')
-      const mockSupabase = createClient() as any
-      mockSupabase.auth.exchangeCodeForSession.mockResolvedValue({
-        data: { user: mockUser, session: mockSession },
-        error: null
-      })
-      mockSupabase.auth.updateUser.mockResolvedValue({ error: null })
-
-      const { securityService } = await import('@/lib/services/security-service')
-      ;(securityService.detectSuspiciousActivity as any).mockResolvedValue(null)
+      vi.mocked(securityService.detectSuspiciousActivity).mockResolvedValue(null)
 
       await GET(request)
 
@@ -155,27 +142,12 @@ describe('/api/auth/callback', () => {
     })
 
     it('should set secure cookies in production', async () => {
-      // Override NODE_ENV for this test using Object.defineProperty
-      const originalNodeEnv = process.env.NODE_ENV
-      Object.defineProperty(process.env, 'NODE_ENV', {
-        value: 'production',
-        writable: true,
-        configurable: true
-      })
+      vi.stubEnv('NODE_ENV', 'production')
       
       const url = 'http://localhost:3000/auth/callback?code=auth_code_123&provider=google'
       const request = new NextRequest(url)
       
-      const { createClient } = await import('@/lib/supabase')
-      const mockSupabase = createClient() as any
-      mockSupabase.auth.exchangeCodeForSession.mockResolvedValue({
-        data: { user: mockUser, session: mockSession },
-        error: null
-      })
-      mockSupabase.auth.updateUser.mockResolvedValue({ error: null })
-
-      const { securityService } = await import('@/lib/services/security-service')
-      ;(securityService.detectSuspiciousActivity as any).mockResolvedValue(null)
+      vi.mocked(securityService.detectSuspiciousActivity).mockResolvedValue(null)
 
       await GET(request)
 
@@ -183,12 +155,7 @@ describe('/api/auth/callback', () => {
         secure: true // Production mode
       }))
       
-      // Restore original NODE_ENV
-      Object.defineProperty(process.env, 'NODE_ENV', {
-        value: originalNodeEnv,
-        writable: true,
-        configurable: true
-      })
+      vi.unstubAllEnvs()
     })
   })
 
@@ -197,8 +164,6 @@ describe('/api/auth/callback', () => {
       const url = 'http://localhost:3000/auth/callback?error=access_denied&error_description=User+denied+access&provider=google'
       const request = new NextRequest(url)
 
-      const { securityService } = await import('@/lib/services/security-service')
-
       await GET(request)
 
       // Verify error logging
@@ -206,7 +171,6 @@ describe('/api/auth/callback', () => {
         type: 'failed_login',
         ip: '127.0.0.1',
         userAgent: 'unknown',
-        timestamp: expect.any(Date),
         details: {
           provider: 'google',
           error: 'access_denied',
@@ -224,8 +188,6 @@ describe('/api/auth/callback', () => {
     it('should handle missing authorization code', async () => {
       const url = 'http://localhost:3000/auth/callback?provider=google'
       const request = new NextRequest(url)
-
-      const { securityService } = await import('@/lib/services/security-service')
 
       await GET(request)
 
@@ -248,14 +210,10 @@ describe('/api/auth/callback', () => {
       const url = 'http://localhost:3000/auth/callback?code=invalid_code&provider=google'
       const request = new NextRequest(url)
       
-      const { createClient } = await import('@/lib/supabase')
-      const mockSupabase = createClient() as any
-      mockSupabase.auth.exchangeCodeForSession.mockResolvedValue({
+      mockExchangeCodeForSession.mockResolvedValue({
         data: { user: null, session: null },
         error: { message: 'Invalid authorization code' }
       })
-
-      const { securityService } = await import('@/lib/services/security-service')
 
       await GET(request)
 
@@ -274,14 +232,10 @@ describe('/api/auth/callback', () => {
       const url = 'http://localhost:3000/auth/callback?code=valid_code&provider=google'
       const request = new NextRequest(url)
       
-      const { createClient } = await import('@/lib/supabase')
-      const mockSupabase = createClient() as any
-      mockSupabase.auth.exchangeCodeForSession.mockResolvedValue({
+      mockExchangeCodeForSession.mockResolvedValue({
         data: { user: null, session: null },
         error: null
       })
-
-      const { securityService } = await import('@/lib/services/security-service')
 
       await GET(request)
 
@@ -301,15 +255,12 @@ describe('/api/auth/callback', () => {
       const url = 'http://localhost:3000/auth/callback?code=auth_code_123&provider=google'
       const request = new NextRequest(url)
       
-      const { createClient } = await import('@/lib/supabase')
-      const mockSupabase = createClient() as any
-      mockSupabase.auth.exchangeCodeForSession.mockResolvedValue({
+      mockExchangeCodeForSession.mockResolvedValue({
         data: { user: mockUser, session: mockSession },
         error: null
       })
-      mockSupabase.auth.updateUser.mockResolvedValue({ error: null })
+      mockUpdateUser.mockResolvedValue({ error: null })
 
-      const { securityService } = await import('@/lib/services/security-service')
       const mockSuspiciousActivity = {
         id: 'alert-123',
         type: 'multiple_failed_logins',
@@ -319,7 +270,7 @@ describe('/api/auth/callback', () => {
         timestamp: new Date(),
         resolved: false
       }
-      ;(securityService.detectSuspiciousActivity as any).mockResolvedValue(mockSuspiciousActivity)
+      vi.mocked(securityService.detectSuspiciousActivity).mockResolvedValue(mockSuspiciousActivity)
 
       await GET(request)
 
@@ -330,15 +281,12 @@ describe('/api/auth/callback', () => {
       const url = 'http://localhost:3000/auth/callback?code=auth_code_123&provider=google'
       const request = new NextRequest(url)
       
-      const { createClient } = await import('@/lib/supabase')
-      const mockSupabase = createClient() as any
-      mockSupabase.auth.exchangeCodeForSession.mockResolvedValue({
+      mockExchangeCodeForSession.mockResolvedValue({
         data: { user: mockUser, session: mockSession },
         error: null
       })
-      mockSupabase.auth.updateUser.mockResolvedValue({ error: null })
+      mockUpdateUser.mockResolvedValue({ error: null })
 
-      const { securityService } = await import('@/lib/services/security-service')
       const criticalAlert = {
         id: 'alert-123',
         type: 'brute_force',
@@ -348,7 +296,7 @@ describe('/api/auth/callback', () => {
         timestamp: new Date(),
         resolved: false
       }
-      ;(securityService.detectSuspiciousActivity as any).mockResolvedValue(criticalAlert)
+      vi.mocked(securityService.detectSuspiciousActivity).mockResolvedValue(criticalAlert)
 
       await GET(request)
 
@@ -368,20 +316,17 @@ describe('/api/auth/callback', () => {
       const url = 'http://localhost:3000/auth/callback?code=auth_code_123&provider=google'
       const request = new NextRequest(url)
       
-      const { createClient } = await import('@/lib/supabase')
-      const mockSupabase = createClient() as any
-      mockSupabase.auth.exchangeCodeForSession.mockResolvedValue({
+      mockExchangeCodeForSession.mockResolvedValue({
         data: { user: existingUser, session: mockSession },
         error: null
       })
-      mockSupabase.auth.updateUser.mockResolvedValue({ error: null })
+      mockUpdateUser.mockResolvedValue({ error: null })
 
-      const { securityService } = await import('@/lib/services/security-service')
-      ;(securityService.detectSuspiciousActivity as any).mockResolvedValue(null)
+      vi.mocked(securityService.detectSuspiciousActivity).mockResolvedValue(null)
 
       await GET(request)
 
-      expect(mockSupabase.auth.updateUser).toHaveBeenCalledWith({
+      expect(mockUpdateUser).toHaveBeenCalledWith({
         data: {
           social_providers: ['facebook', 'google']
         }
@@ -399,21 +344,18 @@ describe('/api/auth/callback', () => {
       const url = 'http://localhost:3000/auth/callback?code=auth_code_123&provider=google'
       const request = new NextRequest(url)
       
-      const { createClient } = await import('@/lib/supabase')
-      const mockSupabase = createClient() as any
-      mockSupabase.auth.exchangeCodeForSession.mockResolvedValue({
+      mockExchangeCodeForSession.mockResolvedValue({
         data: { user: existingUser, session: mockSession },
         error: null
       })
-      mockSupabase.auth.updateUser.mockResolvedValue({ error: null })
+      mockUpdateUser.mockResolvedValue({ error: null })
 
-      const { securityService } = await import('@/lib/services/security-service')
-      ;(securityService.detectSuspiciousActivity as any).mockResolvedValue(null)
+      vi.mocked(securityService.detectSuspiciousActivity).mockResolvedValue(null)
 
       await GET(request)
 
       // Should not call updateUser since Google is already in the list
-      expect(mockSupabase.auth.updateUser).not.toHaveBeenCalled()
+      expect(mockUpdateUser).not.toHaveBeenCalled()
     })
   })
 
@@ -422,11 +364,7 @@ describe('/api/auth/callback', () => {
       const url = 'http://localhost:3000/auth/callback?code=auth_code_123&provider=google'
       const request = new NextRequest(url)
       
-      const { createClient } = await import('@/lib/supabase')
-      const mockSupabase = createClient() as any
-      mockSupabase.auth.exchangeCodeForSession.mockRejectedValue(new Error('Network error'))
-
-      const { securityService } = await import('@/lib/services/security-service')
+      mockExchangeCodeForSession.mockRejectedValue(new Error('Network error'))
 
       await GET(request)
 

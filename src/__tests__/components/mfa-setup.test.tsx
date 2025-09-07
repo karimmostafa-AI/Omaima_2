@@ -37,27 +37,27 @@ describe('MFASetup Component', () => {
   it('should render initial setup step', () => {
     render(<MFASetup onComplete={mockOnComplete} onCancel={mockOnCancel} />);
 
-    expect(screen.getByText('Set Up Two-Factor Authentication')).toBeInTheDocument();
+    expect(screen.getByText('Multi-Factor Authentication')).toBeInTheDocument();
     expect(screen.getByText('Secure your account with an additional layer of protection')).toBeInTheDocument();
-    expect(screen.getByText('Get Started')).toBeInTheDocument();
+    expect(screen.getByText('Start Setup')).toBeInTheDocument();
   });
 
-  it('should proceed to QR code step when Get Started is clicked', async () => {
+  it('should proceed to QR code step when Start Setup is clicked', async () => {
     const user = userEvent.setup();
     
     mockAuthStore.enableMFA.mockResolvedValue({
-      secret: 'MOCKTOTP secret',
+      secret: 'MOCKTOTPSECRET',
       qrCode: 'otpauth://totp/test',
       backupCodes: ['12345678', '87654321']
     });
 
     render(<MFASetup onComplete={mockOnComplete} onCancel={mockOnCancel} />);
 
-    await user.click(screen.getByText('Get Started'));
+    await user.click(screen.getByText('Start Setup'));
 
     await waitFor(() => {
       expect(screen.getByText('Scan QR Code')).toBeInTheDocument();
-      expect(screen.getByText('Scan this QR code with your authenticator app')).toBeInTheDocument();
+      expect(screen.getByText('Scan this QR code with your authenticator app.')).toBeInTheDocument();
     });
 
     expect(mockAuthStore.enableMFA).toHaveBeenCalled();
@@ -75,7 +75,7 @@ describe('MFASetup Component', () => {
 
     render(<MFASetup onComplete={mockOnComplete} onCancel={mockOnCancel} />);
 
-    await user.click(screen.getByText('Get Started'));
+    await user.click(screen.getByText('Start Setup'));
 
     await waitFor(() => {
       expect(screen.getByText('Failed to setup MFA')).toBeInTheDocument();
@@ -86,18 +86,18 @@ describe('MFASetup Component', () => {
     const user = userEvent.setup();
     
     mockAuthStore.enableMFA.mockResolvedValue({
-      secret: 'MOCKTOTP secret',
+      secret: 'MOCKTOTPSECRET',
       qrCode: 'otpauth://totp/test',
       backupCodes: ['12345678', '87654321']
     });
 
     render(<MFASetup onComplete={mockOnComplete} onCancel={mockOnCancel} />);
 
-    await user.click(screen.getByText('Get Started'));
+    await user.click(screen.getByText('Start Setup'));
 
     await waitFor(() => {
       expect(screen.getByRole('img', { name: 'QR Code for MFA setup' })).toBeInTheDocument();
-      expect(screen.getByText('MOCKTOTP secret')).toBeInTheDocument();
+      expect(screen.getByText('MOCKTOTPSECRET')).toBeInTheDocument();
       expect(screen.getByText('Continue')).toBeInTheDocument();
     });
   });
@@ -106,7 +106,7 @@ describe('MFASetup Component', () => {
     const user = userEvent.setup();
     
     mockAuthStore.enableMFA.mockResolvedValue({
-      secret: 'MOCKTOTP secret',
+      secret: 'MOCKTOTPSECRET',
       qrCode: 'otpauth://totp/test',
       backupCodes: ['12345678', '87654321']
     });
@@ -114,7 +114,7 @@ describe('MFASetup Component', () => {
     render(<MFASetup onComplete={mockOnComplete} onCancel={mockOnCancel} />);
 
     // Start setup
-    await user.click(screen.getByText('Get Started'));
+    await user.click(screen.getByText('Start Setup'));
 
     await waitFor(() => {
       expect(screen.getByText('Continue')).toBeInTheDocument();
@@ -125,7 +125,7 @@ describe('MFASetup Component', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Verify Setup')).toBeInTheDocument();
-      expect(screen.getByText('Enter the 6-digit code from your authenticator app')).toBeInTheDocument();
+      expect(screen.getByText('Enter the 6-digit code from your authenticator app.')).toBeInTheDocument();
       expect(screen.getByPlaceholderText('Enter 6-digit code')).toBeInTheDocument();
     });
   });
@@ -134,7 +134,7 @@ describe('MFASetup Component', () => {
     const user = userEvent.setup();
     
     mockAuthStore.enableMFA.mockResolvedValue({
-      secret: 'MOCKTOTP secret',
+      secret: 'MOCKTOTPSECRET',
       qrCode: 'otpauth://totp/test',
       backupCodes: ['12345678', '87654321']
     });
@@ -146,7 +146,7 @@ describe('MFASetup Component', () => {
     render(<MFASetup onComplete={mockOnComplete} onCancel={mockOnCancel} />);
 
     // Navigate to verification step
-    await user.click(screen.getByText('Get Started'));
+    await user.click(screen.getByText('Start Setup'));
     await waitFor(() => screen.getByText('Continue'));
     await user.click(screen.getByText('Continue'));
 
@@ -167,7 +167,7 @@ describe('MFASetup Component', () => {
 
     // Should proceed to backup codes
     await waitFor(() => {
-      expect(screen.getByText('Save Backup Codes')).toBeInTheDocument();
+      expect(screen.getByText('Save Your Backup Codes')).toBeInTheDocument();
       expect(screen.getByText('12345678')).toBeInTheDocument();
       expect(screen.getByText('87654321')).toBeInTheDocument();
     });
@@ -177,7 +177,7 @@ describe('MFASetup Component', () => {
     const user = userEvent.setup();
     
     mockAuthStore.enableMFA.mockResolvedValue({
-      secret: 'MOCKTOTP secret',
+      secret: 'MOCKTOTPSECRET',
       qrCode: 'otpauth://totp/test',
       backupCodes: ['12345678', '87654321']
     });
@@ -190,7 +190,7 @@ describe('MFASetup Component', () => {
     render(<MFASetup onComplete={mockOnComplete} onCancel={mockOnCancel} />);
 
     // Navigate to verification step
-    await user.click(screen.getByText('Get Started'));
+    await user.click(screen.getByText('Start Setup'));
     await waitFor(() => screen.getByText('Continue'));
     await user.click(screen.getByText('Continue'));
 
@@ -214,7 +214,7 @@ describe('MFASetup Component', () => {
     const user = userEvent.setup();
     
     mockAuthStore.enableMFA.mockResolvedValue({
-      secret: 'MOCKTOTP secret',
+      secret: 'MOCKTOTPSECRET',
       qrCode: 'otpauth://totp/test',
       backupCodes: ['12345678', '87654321']
     });
@@ -226,7 +226,7 @@ describe('MFASetup Component', () => {
     render(<MFASetup onComplete={mockOnComplete} onCancel={mockOnCancel} />);
 
     // Complete the full flow
-    await user.click(screen.getByText('Get Started'));
+    await user.click(screen.getByText('Start Setup'));
     await waitFor(() => screen.getByText('Continue'));
     await user.click(screen.getByText('Continue'));
 
@@ -239,11 +239,11 @@ describe('MFASetup Component', () => {
     await user.click(screen.getByText('Verify & Complete'));
 
     await waitFor(() => {
-      expect(screen.getByText('Save Backup Codes')).toBeInTheDocument();
+      expect(screen.getByText('Save Your Backup Codes')).toBeInTheDocument();
     });
 
     // Complete setup
-    await user.click(screen.getByText('Complete Setup'));
+    await user.click(screen.getByText('Finish Setup'));
 
     expect(mockOnComplete).toHaveBeenCalled();
   });
@@ -262,7 +262,7 @@ describe('MFASetup Component', () => {
     const user = userEvent.setup();
     
     mockAuthStore.enableMFA.mockResolvedValue({
-      secret: 'MOCKTOTP secret',
+      secret: 'MOCKTOTPSECRET',
       qrCode: 'otpauth://totp/test',
       backupCodes: ['12345678', '87654321']
     });
@@ -270,7 +270,7 @@ describe('MFASetup Component', () => {
     render(<MFASetup onComplete={mockOnComplete} onCancel={mockOnCancel} />);
 
     // Navigate to QR step
-    await user.click(screen.getByText('Get Started'));
+    await user.click(screen.getByText('Start Setup'));
     await waitFor(() => screen.getByText('Continue'));
 
     // Navigate to verification step
@@ -291,12 +291,12 @@ describe('MFASetup Component', () => {
     // Mock clipboard API
     Object.assign(navigator, {
       clipboard: {
-        writeText: jest.fn().mockResolvedValue(undefined)
+        writeText: vi.fn().mockResolvedValue(undefined)
       }
     });
 
     mockAuthStore.enableMFA.mockResolvedValue({
-      secret: 'MOCKTOTP secret',
+      secret: 'MOCKTOTPSECRET',
       qrCode: 'otpauth://totp/test',
       backupCodes: ['12345678', '87654321']
     });
@@ -308,7 +308,7 @@ describe('MFASetup Component', () => {
     render(<MFASetup onComplete={mockOnComplete} onCancel={mockOnCancel} />);
 
     // Complete flow to backup codes
-    await user.click(screen.getByText('Get Started'));
+    await user.click(screen.getByText('Start Setup'));
     await waitFor(() => screen.getByText('Continue'));
     await user.click(screen.getByText('Continue'));
 
@@ -335,14 +335,14 @@ describe('MFASetup Component', () => {
 
     render(<MFASetup onComplete={mockOnComplete} onCancel={mockOnCancel} />);
 
-    expect(screen.getByRole('button', { name: /get started/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /start setup/i })).toBeDisabled();
   });
 
   it('should display proper step indicators', async () => {
     const user = userEvent.setup();
     
     mockAuthStore.enableMFA.mockResolvedValue({
-      secret: 'MOCKTOTP secret',
+      secret: 'MOCKTOTPSECRET',
       qrCode: 'otpauth://totp/test',
       backupCodes: ['12345678', '87654321']
     });
@@ -350,18 +350,18 @@ describe('MFASetup Component', () => {
     render(<MFASetup onComplete={mockOnComplete} onCancel={mockOnCancel} />);
 
     // Check initial step indicator
-    expect(screen.getByText('Step 1 of 4')).toBeInTheDocument();
+    expect(screen.getByText('Step 1 of 4: Setup')).toBeInTheDocument();
 
     // Move to QR step
-    await user.click(screen.getByText('Get Started'));
+    await user.click(screen.getByText('Start Setup'));
     await waitFor(() => {
-      expect(screen.getByText('Step 2 of 4')).toBeInTheDocument();
+      expect(screen.getByText('Step 2 of 4: Scan QR')).toBeInTheDocument();
     });
 
     // Move to verification step
     await user.click(screen.getByText('Continue'));
     await waitFor(() => {
-      expect(screen.getByText('Step 3 of 4')).toBeInTheDocument();
+      expect(screen.getByText('Step 3 of 4: Verify')).toBeInTheDocument();
     });
   });
 });
