@@ -1,24 +1,22 @@
 "use client";
 
 import React from 'react';
-import { Refund } from '@/types';
+import { Category } from '@/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-interface RefundTableProps {
-  refunds: Refund[];
+interface CategoriesListProps {
+  categories: Category[];
   total: number;
   page: number;
   limit: number;
-  onViewDetails: (refund: Refund) => void;
-  onProcessRefund: (refund: Refund) => void;
 }
 
-const RefundTable = ({ refunds, total, page, limit, onViewDetails, onProcessRefund }: RefundTableProps) => {
+const CategoriesList = ({ categories, total, page, limit }: CategoriesListProps) => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const totalPages = Math.ceil(total / limit);
@@ -30,46 +28,48 @@ const RefundTable = ({ refunds, total, page, limit, onViewDetails, onProcessRefu
     router.push(`?${params.toString()}`);
   };
 
+  const handleStatusChange = async (categoryId: string, isActive: boolean) => {
+    // This would call an API to update the status
+    console.log(`Updating category ${categoryId} to ${isActive ? 'active' : 'inactive'}`);
+  };
+
   return (
     <div className="bg-white p-6 rounded-lg shadow-md">
-      {refunds.length > 0 ? (
+      <div className="flex justify-end mb-4">
+        <Link href="/admin/categories/create" passHref>
+          <Button>Create New</Button>
+        </Link>
+      </div>
+      {categories.length > 0 ? (
         <>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Refund ID</TableHead>
-                <TableHead>Order ID</TableHead>
-                <TableHead>Return Date</TableHead>
-                <TableHead>Customer</TableHead>
-                <TableHead>Amount</TableHead>
+                <TableHead>S.N</TableHead>
+                <TableHead>Thumbnail</TableHead>
+                <TableHead>Name</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Payment Status</TableHead>
-                <TableHead>Actions</TableHead>
+                <TableHead>Action</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {refunds.map(refund => (
-                <TableRow key={refund.id}>
-                  <TableCell className="font-medium">{refund.id}</TableCell>
+              {categories.map((category, index) => (
+                <TableRow key={category.id}>
+                  <TableCell>{(page - 1) * limit + index + 1}</TableCell>
                   <TableCell>
-                    <Link href={`/admin/orders/${refund.orderId}`} className="text-blue-600 hover:underline">
-                      {refund.orderId}
+                    <img src={category.image || '/placeholder.svg'} alt={category.name} className="w-12 h-12 object-cover rounded-md" />
+                  </TableCell>
+                  <TableCell>{category.name}</TableCell>
+                  <TableCell>
+                    <Switch
+                      checked={category.is_active}
+                      onCheckedChange={(checked) => handleStatusChange(category.id, checked)}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Link href={`/admin/categories/${category.id}/edit`} passHref>
+                      <Button variant="outline" size="sm">Edit</Button>
                     </Link>
-                  </TableCell>
-                  <TableCell>{new Date(refund.returnDate).toLocaleDateString()}</TableCell>
-                  <TableCell>{refund.customer.name}</TableCell>
-                  <TableCell>${refund.amount.toFixed(2)}</TableCell>
-                  <TableCell>
-                    <Badge variant={refund.status === 'completed' ? 'default' : 'secondary'}>{refund.status}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={refund.paymentStatus === 'refunded' ? 'default' : 'secondary'}>{refund.paymentStatus}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm" onClick={() => onViewDetails(refund)}>View Details</Button>
-                      <Button size="sm" onClick={() => onProcessRefund(refund)}>Process Refund</Button>
-                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -97,11 +97,11 @@ const RefundTable = ({ refunds, total, page, limit, onViewDetails, onProcessRefu
         </>
       ) : (
         <div className="text-center py-12">
-          <p>No refunds found.</p>
+          <p>No Data Found</p>
         </div>
       )}
     </div>
   );
 };
 
-export default RefundTable;
+export default CategoriesList;

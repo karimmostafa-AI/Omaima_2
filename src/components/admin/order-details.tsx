@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import { Order, OrderStatus } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -13,25 +14,41 @@ interface OrderDetailsProps {
 }
 
 const OrderDetails = ({ order }: OrderDetailsProps) => {
+  const router = useRouter();
+  const [isUpdating, startTransition] = useTransition();
   const [currentOrderStatus, setCurrentOrderStatus] = useState<OrderStatus>(order.status);
   const [isPaid, setIsPaid] = useState(order.financial_status === 'paid');
   const [isAssignRiderModalOpen, setIsAssignRiderModalOpen] = useState(false);
 
+  const handleUpdate = (payload: any) => {
+    startTransition(async () => {
+      const response = await fetch(`/api/admin/orders/${order.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (response.ok) {
+        router.refresh();
+      } else {
+        // TODO: Add proper error handling with toasts
+        console.error("Failed to update order");
+      }
+    });
+  };
+
   const handleChangeOrderStatus = (status: OrderStatus) => {
-    console.log(`Changing order status to: ${status}`);
-    // Here you would typically call an API to update the status
     setCurrentOrderStatus(status);
+    handleUpdate({ action: 'change_status', status });
   };
 
   const handleTogglePaymentStatus = (checked: boolean) => {
-    console.log(`Changing payment status to: ${checked ? 'Paid' : 'Unpaid'}`);
-    // Here you would typically call an API to update the status
     setIsPaid(checked);
+    handleUpdate({ action: 'change_payment_status', isPaid: checked });
   };
 
   const handleAssignRider = (riderId: string) => {
-    console.log(`Assigning rider ${riderId} to order ${order.id}`);
-    // Here you would typically call an API to assign the rider
+    handleUpdate({ action: 'assign_rider', riderId });
     setIsAssignRiderModalOpen(false);
   };
 
@@ -130,7 +147,7 @@ const OrderDetails = ({ order }: OrderDetailsProps) => {
               <div className="space-y-4">
                 <div>
                   <Label htmlFor="order-status">Change Order Status</Label>
-                  <Select value={currentOrderStatus} onValueChange={(value: OrderStatus) => handleChangeOrderStatus(value)}>
+                  <Select value={currentOrderStatus} onValueChange={(value: OrderStatus) => handleChangeOrderStatus(value)} disabled={isUpdating}>
                     <SelectTrigger id="order-status">
                       <SelectValue placeholder="Select status" />
                     </SelectTrigger>
@@ -150,9 +167,10 @@ const OrderDetails = ({ order }: OrderDetailsProps) => {
                     id="payment-status"
                     checked={isPaid}
                     onCheckedChange={handleTogglePaymentStatus}
+                    disabled={isUpdating}
                   />
                 </div>
-                <Button className="w-full" onClick={() => setIsAssignRiderModalOpen(true)}>
+                <Button className="w-full" onClick={() => setIsAssignRiderModalOpen(true)} disabled={isUpdating}>
                   Assign Rider
                 </Button>
               </div>
