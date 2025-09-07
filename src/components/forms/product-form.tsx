@@ -39,18 +39,8 @@ import {
   Plus, 
   Eye, 
   Save, 
-  AlertCircle,
-  Trash2,
-  Sparkles,
+  AlertCircle
 } from 'lucide-react'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
 
 const productFormSchema = z.object({
   name: z.string().min(1, 'Product name is required'),
@@ -102,22 +92,6 @@ export function ProductForm({
   const [images, setImages] = useState<string[]>(initialData?.images || [])
   const [tags, setTags] = useState<string[]>(initialData?.tags || [])
   const [tagInput, setTagInput] = useState('')
-  const [hasVariants, setHasVariants] = useState(false)
-
-  // Advanced Variant State
-  type Option = { name: string; values: string[] };
-  type Variant = {
-    id: string; // for React key
-    price: number;
-    quantity: number;
-    sku: string;
-    imageId?: string;
-    optionValues: { optionName: string; value: string }[];
-  };
-
-  const [options, setOptions] = useState<Option[]>([{ name: '', values: [] }]);
-  const [variants, setVariants] = useState<Variant[]>([]);
-  const [optionValueInputs, setOptionValueInputs] = useState<string[]>(['']);
 
   const form = useForm<ProductFormData>({
     resolver: zodResolver(productFormSchema),
@@ -146,127 +120,11 @@ export function ProductForm({
 
   const handleSubmit = async (data: ProductFormData) => {
     try {
-      // Remove the id field from variants before submitting
-      const variantsToSubmit = variants.map(({ id, ...rest }) => rest);
-
-      const submissionData = {
-        ...data,
-        tags,
-        images: images.map((img, index) => ({ url: img, position: index })), // Assuming URL-based for now
-        options: hasVariants ? options.filter(opt => opt.name.trim() && opt.values.length > 0) : [],
-        variants: hasVariants ? variantsToSubmit : [],
-      };
-
-      // The 'onSubmit' prop will call the actual API service method
-      await onSubmit(submissionData as any);
+      await onSubmit({ ...data, tags, images })
     } catch (error) {
       console.error('Error submitting form:', error)
     }
   }
-
-  // --- Variant Management Logic ---
-
-  const addOption = () => {
-    if (options.length < 3) {
-      setOptions([...options, { name: '', values: [] }]);
-      setOptionValueInputs([...optionValueInputs, '']);
-    }
-  };
-
-  const removeOption = (index: number) => {
-    setOptions(options.filter((_, i) => i !== index));
-    setOptionValueInputs(optionValueInputs.filter((_, i) => i !== index));
-  };
-
-  const updateOptionName = (index: number, name: string) => {
-    const newOptions = [...options];
-    newOptions[index].name = name;
-    setOptions(newOptions);
-  };
-
-  const addOptionValue = (optionIndex: number) => {
-    const value = optionValueInputs[optionIndex].trim();
-    if (value && !options[optionIndex].values.includes(value)) {
-      const newOptions = [...options];
-      newOptions[optionIndex].values.push(value);
-      setOptions(newOptions);
-      const newOptionValueInputs = [...optionValueInputs];
-      newOptionValueInputs[optionIndex] = '';
-      setOptionValueInputs(newOptionValueInputs);
-    }
-  };
-
-  const removeOptionValue = (optionIndex: number, value: string) => {
-    const newOptions = [...options];
-    newOptions[optionIndex].values = newOptions[optionIndex].values.filter(v => v !== value);
-    setOptions(newOptions);
-  };
-
-  const handleOptionValueKeyDown = (e: React.KeyboardEvent, optionIndex: number) => {
-    if (e.key === 'Enter' || e.key === ',') {
-      e.preventDefault();
-      addOptionValue(optionIndex);
-    }
-  };
-
-  const cartesianProduct = <T,>(...arrays: T[][]): T[][] => {
-    return arrays.reduce<T[][]>(
-      (acc, array) => {
-        const res: T[][] = [];
-        acc.forEach(a => {
-          array.forEach(b => {
-            res.push(a.concat(b));
-          });
-        });
-        return res;
-      },
-      [[]]
-    );
-  };
-
-  const generateVariants = () => {
-    const validOptions = options.filter(o => o.name.trim() && o.values.length > 0);
-    if (validOptions.length === 0) {
-      setVariants([]);
-      return;
-    }
-
-    if (variants.length > 0) {
-      if (!window.confirm('You have existing variants. Are you sure you want to overwrite them? This cannot be undone.')) {
-        return;
-      }
-    }
-
-    const optionValuesArrays = validOptions.map(o => o.values);
-    const combinations = cartesianProduct(...optionValuesArrays);
-
-    const newVariants = combinations.map((combo, index) => {
-      const optionValues = combo.map((value, i) => ({
-        optionName: validOptions[i].name,
-        value: value,
-      }));
-      return {
-        id: `${Date.now()}-${index}`,
-        price: form.getValues('price') || 0,
-        quantity: 0,
-        sku: '',
-        optionValues,
-      };
-    });
-
-    setVariants(newVariants);
-  };
-
-  const updateVariant = (index: number, field: keyof Variant, value: any) => {
-    const newVariants = [...variants];
-    (newVariants[index] as any)[field] = value;
-    setVariants(newVariants);
-  };
-
-  const removeVariant = (index: number) => {
-    setVariants(variants.filter((_, i) => i !== index));
-  };
-
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files
@@ -405,167 +263,6 @@ export function ProductForm({
                       </FormItem>
                     )}
                   />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Advanced Variants */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Product Variants</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                    <FormControl>
-                      <Checkbox
-                        checked={hasVariants}
-                        onCheckedChange={(checked) => setHasVariants(Boolean(checked))}
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel>This product has multiple options</FormLabel>
-                      <FormDescription>
-                        Enable this to manage variants like size, color, etc.
-                      </FormDescription>
-                    </div>
-                  </FormItem>
-
-                  {hasVariants && (
-                    <div className="space-y-6 pt-4 border-t">
-                      {/* --- OPTIONS --- */}
-                      <div>
-                        <h3 className="text-lg font-medium">Options</h3>
-                        <div className="space-y-4 mt-2">
-                          {options.map((option, optionIndex) => (
-                            <div key={optionIndex} className="p-4 border rounded-md space-y-3">
-                              <div className="flex items-center gap-4">
-                                <Input
-                                  placeholder="Option name (e.g. Size)"
-                                  value={option.name}
-                                  onChange={(e) => updateOptionName(optionIndex, e.target.value)}
-                                  className="flex-grow"
-                                />
-                                {options.length > 1 && (
-                                  <Button variant="ghost" size="icon" onClick={() => removeOption(optionIndex)}>
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                )}
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <Input
-                                  placeholder="Option value (e.g. Small)"
-                                  value={optionValueInputs[optionIndex]}
-                                  onChange={(e) => {
-                                    const newInputs = [...optionValueInputs];
-                                    newInputs[optionIndex] = e.target.value;
-                                    setOptionValueInputs(newInputs);
-                                  }}
-                                  onKeyDown={(e) => handleOptionValueKeyDown(e, optionIndex)}
-                                />
-                                <Button type="button" onClick={() => addOptionValue(optionIndex)}>Add</Button>
-                              </div>
-                              <div className="flex flex-wrap gap-2">
-                                {option.values.map(value => (
-                                  <Badge key={value} variant="secondary">
-                                    {value}
-                                    <button
-                                      type="button"
-                                      className="ml-2"
-                                      onClick={() => removeOptionValue(optionIndex, value)}
-                                    >
-                                      <X className="h-3 w-3" />
-                                    </button>
-                                  </Badge>
-                                ))}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                        {options.length < 3 && (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={addOption}
-                            className="mt-4"
-                          >
-                            <Plus className="mr-2 h-4 w-4" />
-                            Add another option
-                          </Button>
-                        )}
-                      </div>
-
-                      {/* --- GENERATE VARIANTS BUTTON --- */}
-                      <div className="text-center">
-                        <Button
-                          type="button"
-                          onClick={generateVariants}
-                          disabled={options.every(o => o.values.length === 0)}
-                        >
-                          <Sparkles className="mr-2 h-4 w-4" />
-                          Generate Variants
-                        </Button>
-                      </div>
-
-                      {/* --- VARIANTS TABLE --- */}
-                      {variants.length > 0 && (
-                        <div>
-                          <h3 className="text-lg font-medium mb-2">Variants</h3>
-                          <div className="border rounded-md">
-                            <Table>
-                              <TableHeader>
-                                <TableRow>
-                                  <TableHead className="w-[180px]">Variant</TableHead>
-                                  <TableHead>Price</TableHead>
-                                  <TableHead>Quantity</TableHead>
-                                  <TableHead>SKU</TableHead>
-                                  <TableHead className="text-right">Actions</TableHead>
-                                </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                {variants.map((variant, index) => (
-                                  <TableRow key={variant.id}>
-                                    <TableCell className="font-medium">
-                                      {variant.optionValues.map(ov => ov.value).join(' / ')}
-                                    </TableCell>
-                                    <TableCell>
-                                      <Input
-                                        type="number"
-                                        value={variant.price}
-                                        onChange={(e) => updateVariant(index, 'price', Number(e.target.value))}
-                                        className="h-8"
-                                      />
-                                    </TableCell>
-                                    <TableCell>
-                                      <Input
-                                        type="number"
-                                        value={variant.quantity}
-                                        onChange={(e) => updateVariant(index, 'quantity', Number(e.target.value))}
-                                        className="h-8"
-                                      />
-                                    </TableCell>
-                                    <TableCell>
-                                      <Input
-                                        value={variant.sku}
-                                        onChange={(e) => updateVariant(index, 'sku', e.target.value)}
-                                        className="h-8"
-                                      />
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                      <Button variant="ghost" size="icon" onClick={() => removeVariant(index)}>
-                                        <Trash2 className="h-4 w-4" />
-                                      </Button>
-                                    </TableCell>
-                                  </TableRow>
-                                ))}
-                              </TableBody>
-                            </Table>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
                 </div>
               </CardContent>
             </Card>

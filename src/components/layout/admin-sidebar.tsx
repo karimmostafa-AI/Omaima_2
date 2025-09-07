@@ -30,6 +30,8 @@ import {
   FileText,
   Crown,
   Zap,
+  BookOpenCheck,
+  Image,
 } from 'lucide-react'
 
 interface AdminSidebarProps {
@@ -170,6 +172,22 @@ const menuItems: MenuItem[] = [
         title: 'Banners',
         href: '/admin/banners',
         icon: FileText,
+      },
+    ],
+  },
+    {
+    title: 'CMS',
+    icon: BookOpenCheck,
+    children: [
+      {
+        title: 'Pages',
+        href: '/admin/pages',
+        icon: FileText,
+      },
+      {
+        title: 'Media Library',
+        href: '/admin/media',
+        icon: Image,
       },
     ],
   },
