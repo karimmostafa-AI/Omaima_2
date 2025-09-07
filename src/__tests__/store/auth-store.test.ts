@@ -294,11 +294,15 @@ describe('AuthStore', () => {
     it('should enable MFA', async () => {
       const mockUpdateUser = supabase.auth.updateUser as MockedFunction<typeof supabase.auth.updateUser>
       mockUpdateUser.mockResolvedValue({
-        data: { user: mockUser },
+        data: { user: { ...mockUser, user_metadata: { ...mockUser.user_metadata, mfa_enabled: true } } },
         error: null
       })
 
       const { result } = renderHook(() => useAuthStore())
+
+      act(() => {
+        result.current.setUser(mockUser as any)
+      })
 
       await act(async () => {
         const response = await result.current.enableMFA()
@@ -318,6 +322,10 @@ describe('AuthStore', () => {
 
     it('should verify MFA code', async () => {
       const { result } = renderHook(() => useAuthStore())
+
+      act(() => {
+        result.current.setUser(mockUser as any)
+      });
 
       await act(async () => {
         const response = await result.current.verifyMFA('123456')

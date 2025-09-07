@@ -1,100 +1,72 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import { SecurityService } from '@/lib/services/security-service'
 import { createClient } from '@/lib/supabase-middleware'
 
-// Mock Supabase client
-vi.mock('@/lib/supabase-middleware', () => ({
-  createClient: vi.fn(() => ({
-    from: vi.fn(() => ({
-      select: vi.fn(() => ({
-        eq: vi.fn(() => ({
-          single: vi.fn().mockResolvedValue({ data: null, error: null })
-        }))
-      })),
-      insert: vi.fn().mockResolvedValue({ data: {}, error: null }),
-      update: vi.fn(() => ({
-        eq: vi.fn().mockResolvedValue({ data: {}, error: null })
-      })),
-      delete: vi.fn(() => ({
-        eq: vi.fn().mockResolvedValue({ data: {}, error: null })
-      }))
-    }))
-  }))
-}))
+vi.mock('@/lib/supabase-middleware');
 
-// Mock localStorage
 const localStorageMock = {
   getItem: vi.fn(),
   setItem: vi.fn(),
-  removeItem: vi.fn()
-}
-Object.defineProperty(global, 'localStorage', { value: localStorageMock })
+  removeItem: vi.fn(),
+  clear: vi.fn(),
+};
+Object.defineProperty(window, 'localStorage', { value: localStorageMock, writable: true });
 
-// Mock crypto for UUID generation
 Object.defineProperty(global, 'crypto', {
   value: {
-    randomUUID: () => 'mock-uuid-123'
+    randomUUID: () => 'mock-uuid-123',
   }
-})
+});
 
 describe('SecurityService', () => {
-  let securityService: SecurityService
+  let securityService: SecurityService;
+  let mockSupabase: any;
 
   beforeEach(() => {
-    vi.clearAllMocks()
-    localStorageMock.getItem.mockReturnValue('[]')
-    securityService = new SecurityService()
-  })
+    mockSupabase = {
+      from: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      insert: vi.fn().mockReturnThis(),
+      update: vi.fn().mockReturnThis(),
+      delete: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      gte: vi.fn().mockReturnThis(),
+      order: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockReturnThis(),
+      single: vi.fn(),
+      auth: {
+        getSession: vi.fn(),
+        signOut: vi.fn(),
+      },
+    };
+    (createClient as vi.Mock).mockReturnValue(mockSupabase);
+    securityService = new SecurityService();
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+    localStorageMock.clear();
+  });
 
   describe('IP Validation', () => {
     it('should allow localhost IPs in development', async () => {
       const originalNodeEnv = process.env.NODE_ENV
-      Object.defineProperty(process.env, 'NODE_ENV', {
-        value: 'development',
-        configurable: true,
-        enumerable: true,
-        writable: true
-      })
+      process.env.NODE_ENV = 'development';
       
-      try {
-        const isAllowed = await securityService.validateIPAddress('127.0.0.1')
-        expect(isAllowed).toBe(true)
-      } finally {
-        // Restore original value
-        if (originalNodeEnv !== undefined) {
-          Object.defineProperty(process.env, 'NODE_ENV', {
-            value: originalNodeEnv,
-            configurable: true,
-            enumerable: true,
-            writable: true
-          })
-        }
-      }
+      const isAllowed = await securityService.validateIPAddress('127.0.0.1')
+      expect(isAllowed).toBe(true)
+
+      process.env.NODE_ENV = originalNodeEnv;
     })
 
     it('should allow private network IPs in development', async () => {
-      const originalNodeEnv = process.env.NODE_ENV
-      Object.defineProperty(process.env, 'NODE_ENV', {
-        value: 'development',
-        configurable: true,
-        enumerable: true,
-        writable: true
-      })
-      
-      try {
+        const originalNodeEnv = process.env.NODE_ENV
+        process.env.NODE_ENV = 'development';
+
         const isAllowed = await securityService.validateIPAddress('192.168.1.100')
         expect(isAllowed).toBe(true)
-      } finally {
-        // Restore original value
-        if (originalNodeEnv !== undefined) {
-          Object.defineProperty(process.env, 'NODE_ENV', {
-            value: originalNodeEnv,
-            configurable: true,
-            enumerable: true,
-            writable: true
-          })
-        }
-      }
+
+        process.env.NODE_ENV = originalNodeEnv;
     })
 
     it('should validate against custom IP ranges', async () => {
@@ -108,21 +80,16 @@ describe('SecurityService', () => {
     })
 
     it('should handle IP validation errors gracefully', async () => {
-      // Mock database error
-      const mockSupabase = createClient() as any
-      mockSupabase.from.mockReturnValue({
-        select: () => ({
-          eq: () => {
-            throw new Error('Database error')
-          }
-        })
+      mockSupabase.from.mockImplementation(() => {
+        throw new Error('Database error')
       })
 
       const isAllowed = await securityService.validateIPAddress('127.0.0.1')
-      expect(isAllowed).toBe(true) // Should be permissive on error
+      expect(isAllowed).toBe(true)
     })
 
     it('should add IP to whitelist', async () => {
+        mockSupabase.insert.mockResolvedValue({ error: null });
       const rule = {
         name: 'Office Network',
         cidr: '192.168.1.0/24',
@@ -130,11 +97,12 @@ describe('SecurityService', () => {
         isActive: true
       }
 
-      const result = await securityService.addIPToWhitelist(rule)
+      const result = await securityService.addIPToWhitelist(rule as any)
       expect(result.success).toBe(true)
     })
 
     it('should remove IP from whitelist', async () => {
+      mockSupabase.eq.mockResolvedValue({ error: null });
       const result = await securityService.removeIPFromWhitelist('rule-id-123')
       expect(result.success).toBe(true)
     })
@@ -145,19 +113,19 @@ describe('SecurityService', () => {
       const sessionMetadata = {
         userAgent: 'Mozilla/5.0 (Test Browser)',
         ip: '127.0.0.1',
-        deviceFingerprint: 'test-fingerprint',
-        location: { country: 'US', city: 'New York' }
       }
+      mockSupabase.single.mockResolvedValue({ data: { id: 'session-123' }, error: null });
+      mockSupabase.insert.mockReturnValue(mockSupabase);
+
 
       const session = await securityService.createSecureSession('user-123', sessionMetadata)
+
       expect(session).toBeDefined()
+      expect(mockSupabase.from).toHaveBeenCalledWith('user_sessions');
     })
 
     it('should validate session successfully', async () => {
-      // Mock valid session
-      const mockSupabase = createClient() as any
-      mockSupabase.auth = {
-        getSession: vi.fn().mockResolvedValue({
+      mockSupabase.auth.getSession.mockResolvedValue({
           data: {
             session: {
               user: { id: 'user-123' },
@@ -166,7 +134,6 @@ describe('SecurityService', () => {
           },
           error: null
         })
-      }
 
       const validation = await securityService.validateSession('valid-token')
       expect(validation.isValid).toBe(true)
@@ -174,10 +141,7 @@ describe('SecurityService', () => {
     })
 
     it('should detect expired session', async () => {
-      // Mock expired session
-      const mockSupabase = createClient() as any
-      mockSupabase.auth = {
-        getSession: vi.fn().mockResolvedValue({
+      mockSupabase.auth.getSession.mockResolvedValue({
           data: {
             session: {
               user: { id: 'user-123' },
@@ -186,17 +150,17 @@ describe('SecurityService', () => {
           },
           error: null
         })
-      }
 
       const validation = await securityService.validateSession('expired-token')
       expect(validation.needsRefresh).toBe(true)
     })
 
     it('should terminate all user sessions', async () => {
+      mockSupabase.eq.mockResolvedValue({ error: null });
       await securityService.terminateAllUserSessions('user-123')
-      
-      const mockSupabase = createClient() as any
       expect(mockSupabase.from).toHaveBeenCalledWith('user_sessions')
+      expect(mockSupabase.update).toHaveBeenCalledWith({ isActive: false })
+      expect(mockSupabase.eq).toHaveBeenCalledWith('userId', 'user-123');
     })
   })
 
@@ -210,7 +174,6 @@ describe('SecurityService', () => {
     })
 
     it('should block requests exceeding rate limit', async () => {
-      // Mock rate limit data showing max attempts reached
       localStorageMock.getItem.mockReturnValue(JSON.stringify({
         attempts: 5,
         timestamp: Date.now()
@@ -222,10 +185,9 @@ describe('SecurityService', () => {
     })
 
     it('should reset rate limit after window expires', async () => {
-      // Mock old rate limit data
       localStorageMock.getItem.mockReturnValue(JSON.stringify({
         attempts: 5,
-        timestamp: Date.now() - (16 * 60 * 1000) // 16 minutes ago (expired)
+        timestamp: Date.now() - (16 * 60 * 1000)
       }))
       
       const result = await securityService.checkRateLimit('user-123', 'login')
@@ -243,43 +205,34 @@ describe('SecurityService', () => {
       })
       
       const result = await securityService.checkRateLimit('user-123', 'login')
-      expect(result.allowed).toBe(true) // Should be permissive on error
+      expect(result.allowed).toBe(true)
     })
   })
 
   describe('Security Event Logging', () => {
     it('should log security event', async () => {
+        mockSupabase.insert.mockResolvedValue({ error: null });
       const event = {
         type: 'login' as const,
         userId: 'user-123',
         ip: '127.0.0.1',
         userAgent: 'Mozilla/5.0',
-        timestamp: new Date(),
         details: { action: 'successful_login' }
       }
 
       await securityService.logSecurityEvent(event)
-      
-      // Check that event was stored in localStorage
-      expect(localStorageMock.setItem).toHaveBeenCalledWith(
-        'security_events',
-        expect.stringContaining('login')
-      )
+      expect(mockSupabase.from).toHaveBeenCalledWith('security_events');
+      expect(mockSupabase.insert).toHaveBeenCalled();
     })
 
     it('should handle logging errors gracefully', async () => {
-      localStorageMock.setItem.mockImplementation(() => {
-        throw new Error('Storage error')
-      })
+      mockSupabase.from.mockImplementation(() => { throw new Error('DB Down')});
 
       const event = {
         type: 'login' as const,
         ip: '127.0.0.1',
         userAgent: 'Mozilla/5.0',
-        timestamp: new Date()
       }
-
-      // Should not throw error
       await expect(securityService.logSecurityEvent(event)).resolves.toBeUndefined()
     })
   })
@@ -292,15 +245,9 @@ describe('SecurityService', () => {
         timestamp: new Date(),
         details: {}
       })
+      const eqMock = vi.fn().mockResolvedValue({ data: mockEvents, error: null });
+      mockSupabase.gte.mockReturnValue({ eq: eqMock });
 
-      const mockSupabase = createClient() as any
-      mockSupabase.from.mockReturnValue({
-        select: () => ({
-          gte: () => ({
-            eq: () => ({ data: mockEvents })
-          })
-        })
-      })
 
       const alert = await securityService.detectSuspiciousActivity({
         ip: '127.0.0.1',
@@ -319,15 +266,8 @@ describe('SecurityService', () => {
         timestamp: new Date(),
         details: {}
       })
-
-      const mockSupabase = createClient() as any
-      mockSupabase.from.mockReturnValue({
-        select: () => ({
-          gte: () => ({
-            eq: () => ({ data: mockEvents })
-          })
-        })
-      })
+      const eqMock = vi.fn().mockResolvedValue({ data: mockEvents, error: null });
+      mockSupabase.gte.mockReturnValue({ eq: eqMock });
 
       const alert = await securityService.detectSuspiciousActivity({
         ip: '127.0.0.1'
@@ -339,14 +279,8 @@ describe('SecurityService', () => {
     })
 
     it('should return null for normal activity', async () => {
-      const mockSupabase = createClient() as any
-      mockSupabase.from.mockReturnValue({
-        select: () => ({
-          gte: () => ({
-            eq: () => ({ data: [] })
-          })
-        })
-      })
+      const eqMock = vi.fn().mockResolvedValue({ data: [], error: null });
+      mockSupabase.gte.mockReturnValue({ eq: eqMock });
 
       const alert = await securityService.detectSuspiciousActivity({
         ip: '127.0.0.1'
@@ -356,6 +290,7 @@ describe('SecurityService', () => {
     })
 
     it('should trigger security alert', async () => {
+        mockSupabase.insert.mockResolvedValue({ error: null });
       const alert = {
         id: 'alert-123',
         type: 'brute_force' as const,
@@ -367,9 +302,8 @@ describe('SecurityService', () => {
       }
 
       await securityService.triggerSecurityAlert(alert)
-      
-      const mockSupabase = createClient() as any
       expect(mockSupabase.from).toHaveBeenCalledWith('security_alerts')
+      expect(mockSupabase.from).toHaveBeenCalledWith('security_events')
     })
   })
 
@@ -380,8 +314,6 @@ describe('SecurityService', () => {
           get: vi.fn((header: string) => {
             const headers: Record<string, string> = {
               'x-forwarded-for': '203.0.113.1, 192.168.1.1',
-              'x-real-ip': '203.0.113.1',
-              'cf-connecting-ip': '203.0.113.1'
             }
             return headers[header]
           })
@@ -406,41 +338,30 @@ describe('SecurityService', () => {
         { type: 'login', userId: 'user-123', timestamp: new Date() },
         { type: 'logout', userId: 'user-123', timestamp: new Date() }
       ]
-
-      const mockSupabase = createClient() as any
-      mockSupabase.from.mockReturnValue({
-        select: () => ({
-          eq: () => ({
-            order: () => ({
-              limit: () => ({ data: mockEvents })
-            })
-          })
-        })
-      })
+      mockSupabase.limit.mockResolvedValue({ data: mockEvents, error: null });
 
       const events = await securityService.getUserSecurityEvents('user-123')
       expect(events).toHaveLength(2)
+      expect(mockSupabase.from).toHaveBeenCalledWith('security_events');
     })
   })
 
   describe('IP Range Validation', () => {
     it('should validate IPv4 CIDR ranges correctly', async () => {
-      const allowedRanges = ['192.168.1.0/24']
+      mockSupabase.eq.mockResolvedValue({data: [{ cidr: '192.168.1.0/24' }]});
       
-      // Should allow IPs in range
-      expect(await securityService.validateIPAddress('192.168.1.1', allowedRanges)).toBe(true)
-      expect(await securityService.validateIPAddress('192.168.1.254', allowedRanges)).toBe(true)
+      expect(await securityService.isIPWhitelisted('192.168.1.1')).toBe(true)
+      expect(await securityService.isIPWhitelisted('192.168.1.254')).toBe(true)
       
-      // Should reject IPs outside range
-      expect(await securityService.validateIPAddress('192.168.2.1', allowedRanges)).toBe(false)
-      expect(await securityService.validateIPAddress('10.0.0.1', allowedRanges)).toBe(false)
+      mockSupabase.eq.mockResolvedValue({data: [{ cidr: '192.168.1.0/24' }]});
+      expect(await securityService.isIPWhitelisted('192.168.2.1')).toBe(false)
     })
 
     it('should handle exact IP matches', async () => {
-      const allowedIPs = ['203.0.113.1', '198.51.100.1']
+        mockSupabase.eq.mockResolvedValue({data: [{ cidr: '203.0.113.1' }, { cidr: '198.51.100.1' }]});
       
-      expect(await securityService.validateIPAddress('203.0.113.1', allowedIPs)).toBe(true)
-      expect(await securityService.validateIPAddress('203.0.113.2', allowedIPs)).toBe(false)
+      expect(await securityService.isIPWhitelisted('203.0.113.1')).toBe(true)
+      expect(await securityService.isIPWhitelisted('203.0.113.2')).toBe(false)
     })
   })
 })

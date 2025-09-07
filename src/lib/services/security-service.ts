@@ -478,11 +478,13 @@ export class SecurityService {
 
       // Check for multiple failed logins
       const failedLogins = events.filter(e => e.type === 'failed_login')
-      if (failedLogins.length >= 5) {
+
+      // Check for brute force patterns
+      if (failedLogins.length >= 10) {
         return {
           id: crypto.randomUUID(),
-          type: 'multiple_failed_logins',
-          severity: 'high',
+          type: 'brute_force',
+          severity: 'critical',
           userId,
           ip: ip || failedLogins[0]?.ip,
           details: { attempts: failedLogins.length, window: timeWindow },
@@ -491,12 +493,11 @@ export class SecurityService {
         }
       }
 
-      // Check for brute force patterns
-      if (failedLogins.length >= 10) {
+      if (failedLogins.length >= 5) {
         return {
           id: crypto.randomUUID(),
-          type: 'brute_force',
-          severity: 'critical',
+          type: 'multiple_failed_logins',
+          severity: 'high',
           userId,
           ip: ip || failedLogins[0]?.ip,
           details: { attempts: failedLogins.length, window: timeWindow },
