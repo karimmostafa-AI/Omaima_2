@@ -1,17 +1,29 @@
-import { prisma } from '@/lib/supabase'
-import type { 
-  Product, 
-  Category, 
-  ProductVariant, 
-  ProductImage, 
-  ProductStatus, 
-  ProductType 
-} from '@prisma/client'
+import { prisma } from '@/lib/supabase';
+import type {
+  Product,
+  Category,
+  ProductVariant,
+  ProductImage,
+  ProductStatus,
+  ProductType,
+  ProductOption,
+  ProductOptionValue,
+} from '@prisma/client';
 
 export interface ProductWithDetails extends Product {
-  categories: Category[]
-  variants: ProductVariant[]
-  images: ProductImage[]
+  categories: Category[];
+  images: ProductImage[];
+  options: (ProductOption & {
+    values: ProductOptionValue[];
+  })[];
+  variants: (ProductVariant & {
+    optionValues: {
+      optionValue: ProductOptionValue & {
+        productOption: ProductOption;
+      };
+    }[];
+    image: ProductImage | null;
+  })[];
 }
 
 export interface ProductFilters {
@@ -27,46 +39,55 @@ export interface ProductFilters {
   limit?: number
 }
 
-export interface ProductCreateData {
-  name: string
-  slug: string
-  description?: string
-  shortDescription?: string
-  type: ProductType
-  status: ProductStatus
-  sku?: string
-  price: number
-  compareAtPrice?: number
-  costPrice?: number
-  trackQuantity: boolean
-  quantity?: number
-  weight?: number
-  requiresShipping: boolean
-  taxable: boolean
-  taxCode?: string
-  tags: string[]
-  basePrice: number
-  estimatedDeliveryDays: number
-  categoryIds: string[]
-  images: {
-    url: string
-    altText?: string
-    position: number
-  }[]
-  variants?: {
-    title: string
-    option1?: string
-    option2?: string
-    option3?: string
-    sku?: string
-    price: number
-    compareAtPrice?: number
-    costPrice?: number
-    position: number
-    quantity: number
-    weight?: number
-  }[]
+export interface VariantData {
+  price: number;
+  quantity: number;
+  sku?: string;
+  imageId?: string;
+  optionValues: {
+    optionName: string;
+    value: string;
+  }[];
 }
+
+export interface OptionData {
+  name: string;
+  values: string[];
+}
+
+export interface ProductCreateData {
+  name: string;
+  slug: string;
+  description?: string;
+  shortDescription?: string;
+  type: ProductType;
+  status: ProductStatus;
+  price: number; // Base price
+  sku?: string; // Base SKU
+  quantity?: number; // Total quantity (will be sum of variants)
+  trackQuantity: boolean;
+  tags: string[];
+  categoryIds: string[];
+  images: {
+    url: string;
+    altText?: string;
+    position: number;
+  }[];
+  options?: OptionData[];
+  variants?: VariantData[];
+  // Fields from original schema that might be useful
+  compareAtPrice?: number;
+  costPrice?: number;
+  weight?: number;
+  requiresShipping?: boolean;
+  taxable?: boolean;
+  taxCode?: string;
+  basePrice?: number;
+  estimatedDeliveryDays?: number;
+}
+
+export type ProductUpdateData = Partial<ProductCreateData>;
+
 
 export class ProductService {
   // Get all products with filters
@@ -124,8 +145,24 @@ export class ProductService {
           images: {
             orderBy: { position: 'asc' }
           },
+          options: {
+            include: {
+              values: true
+            }
+          },
           variants: {
-            orderBy: { position: 'asc' }
+            include: {
+              image: true,
+              optionValues: {
+                include: {
+                  optionValue: {
+                    include: {
+                      productOption: true
+                    }
+                  }
+                }
+              }
+            }
           }
         },
         orderBy: { [sortBy]: sortOrder },
@@ -158,10 +195,29 @@ export class ProductService {
       include: {
         categories: true,
         images: {
-          orderBy: { position: 'asc' }
+          orderBy: { position: 'asc' },
+        },
+        options: {
+          include: {
+            values: {
+              orderBy: { value: 'asc' },
+            },
+          },
+          orderBy: { name: 'asc' },
         },
         variants: {
-          orderBy: { position: 'asc' }
+          include: {
+            image: true,
+            optionValues: {
+              include: {
+                optionValue: {
+                  include: {
+                    productOption: true,
+                  },
+                },
+              },
+            },
+          },
         },
         customizationTemplates: {
           where: { isActive: true },
@@ -180,55 +236,175 @@ export class ProductService {
 
   // Create new product (Admin only)
   static async createProduct(data: ProductCreateData) {
-    const { categoryIds, images, variants, ...productData } = data
+    const { categoryIds, images, options, variants, ...productData } = data;
 
-    return await prisma.product.create({
+    // Calculate total quantity from variants if they exist
+    if (variants && variants.length > 0) {
+      productData.quantity = variants.reduce((acc, v) => acc + v.quantity, 0);
+    }
+
+    const createdProduct = await prisma.product.create({
       data: {
         ...productData,
         categories: {
-          connect: categoryIds.map(id => ({ id }))
+          connect: categoryIds.map((id) => ({ id })),
         },
         images: {
-          create: images
+          create: images,
         },
-        variants: variants ? {
-          create: variants
-        } : undefined
       },
-      include: {
-        categories: true,
-        images: true,
-        variants: true
+    });
+
+    if (options && options.length > 0) {
+      // Create options and their values
+      const createdOptions = await Promise.all(
+        options.map(async (opt) => {
+          const createdOption = await prisma.productOption.create({
+            data: {
+              productId: createdProduct.id,
+              name: opt.name,
+            },
+          });
+          const createdValues = await Promise.all(
+            opt.values.map((val) =>
+              prisma.productOptionValue.create({
+                data: {
+                  productOptionId: createdOption.id,
+                  value: val,
+                },
+              })
+            )
+          );
+          return { ...createdOption, values: createdValues };
+        })
+      );
+
+      // Create variants and link them to option values
+      if (variants && variants.length > 0) {
+        await Promise.all(
+          variants.map(async (variantData) => {
+            const createdVariant = await prisma.productVariant.create({
+              data: {
+                productId: createdProduct.id,
+                price: variantData.price,
+                quantity: variantData.quantity,
+                sku: variantData.sku,
+                imageId: variantData.imageId,
+              },
+            });
+
+            // Link variant to its option values
+            await Promise.all(
+              variantData.optionValues.map((optVal) => {
+                const option = createdOptions.find(o => o.name === optVal.optionName);
+                const value = option?.values.find(v => v.value === optVal.value);
+
+                if (option && value) {
+                  return prisma.productVariantOptionValue.create({
+                    data: {
+                      productVariantId: createdVariant.id,
+                      productOptionValueId: value.id,
+                    },
+                  });
+                }
+                return Promise.resolve(null);
+              })
+            );
+          })
+        );
       }
-    })
+    }
+
+    return this.getProduct(createdProduct.id);
   }
 
   // Update product (Admin only)
-  static async updateProduct(id: string, data: Partial<ProductCreateData>) {
-    const { categoryIds, images, variants, ...productData } = data
+  static async updateProduct(id: string, data: ProductUpdateData) {
+    const { categoryIds, images, options, variants, ...productData } = data;
 
-    return await prisma.product.update({
-      where: { id },
-      data: {
-        ...productData,
-        categories: categoryIds ? {
-          set: categoryIds.map(id => ({ id }))
-        } : undefined,
-        images: images ? {
-          deleteMany: {},
-          create: images
-        } : undefined,
-        variants: variants ? {
-          deleteMany: {},
-          create: variants
-        } : undefined
-      },
-      include: {
-        categories: true,
-        images: true,
-        variants: true
-      }
-    })
+    // If variants are being updated, recalculate total quantity
+    if (variants && variants.length > 0) {
+        productData.quantity = variants.reduce((acc, v) => acc + v.quantity, 0);
+    }
+
+    // Start a transaction
+    return prisma.$transaction(async (tx) => {
+        // Update basic product data
+        const updatedProduct = await tx.product.update({
+            where: { id },
+            data: {
+                ...productData,
+                categories: categoryIds ? { set: categoryIds.map(id => ({ id })) } : undefined,
+            },
+        });
+
+        // Handle images (simple replacement)
+        if (images) {
+            await tx.productImage.deleteMany({ where: { productId: id } });
+            await tx.productImage.createMany({
+                data: images.map(img => ({ ...img, productId: id })),
+            });
+        }
+
+        // Handle options and variants (destructive and reconstructive approach)
+        if (options && variants) {
+            // 1. Delete all existing variant-related data
+            await tx.productVariantOptionValue.deleteMany({ where: { variant: { productId: id } } });
+            await tx.productVariant.deleteMany({ where: { productId: id } });
+            await tx.productOptionValue.deleteMany({ where: { productOption: { productId: id } } });
+            await tx.productOption.deleteMany({ where: { productId: id } });
+
+            // 2. Re-create options and values
+            const createdOptions = await Promise.all(
+              options.map(async (opt) => {
+                const createdOption = await tx.productOption.create({
+                  data: { productId: id, name: opt.name },
+                });
+                const createdValues = await Promise.all(
+                  opt.values.map((val) =>
+                    tx.productOptionValue.create({
+                      data: { productOptionId: createdOption.id, value: val },
+                    })
+                  )
+                );
+                return { ...createdOption, values: createdValues };
+              })
+            );
+
+            // 3. Re-create variants and their links
+            await Promise.all(
+              variants.map(async (variantData) => {
+                const createdVariant = await tx.productVariant.create({
+                  data: {
+                    productId: id,
+                    price: variantData.price,
+                    quantity: variantData.quantity,
+                    sku: variantData.sku,
+                    imageId: variantData.imageId,
+                  },
+                });
+
+                await Promise.all(
+                  variantData.optionValues.map((optVal) => {
+                    const option = createdOptions.find(o => o.name === optVal.optionName);
+                    const value = option?.values.find(v => v.value === optVal.value);
+                    if (option && value) {
+                      return tx.productVariantOptionValue.create({
+                        data: {
+                          productVariantId: createdVariant.id,
+                          productOptionValueId: value.id,
+                        },
+                      });
+                    }
+                    return Promise.resolve(null);
+                  })
+                );
+              })
+            );
+        }
+
+        return this.getProduct(id);
+    });
   }
 
   // Delete product (Admin only)

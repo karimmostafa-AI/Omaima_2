@@ -1,93 +1,90 @@
-import { NextRequest, NextResponse } from 'next/server'
-// Temporarily using mock service until database is configured
-import { ProductService } from '@/lib/services/product-service-temp'
-import { getAuthenticatedUser } from '@/lib/supabase'
+import { NextRequest, NextResponse } from 'next/server';
+import { ProductService } from '@/lib/services/product-service';
+import { z } from 'zod';
+import { ProductStatus, ProductType } from '@prisma/client';
+
+const productUpdateSchema = z.object({
+  name: z.string().min(1).optional(),
+  slug: z.string().min(1).optional(),
+  description: z.string().optional(),
+  shortDescription: z.string().optional(),
+  type: z.nativeEnum(ProductType).optional(),
+  status: z.nativeEnum(ProductStatus).optional(),
+  price: z.number().optional(),
+  sku: z.string().optional(),
+  quantity: z.number().optional(),
+  trackQuantity: z.boolean().optional(),
+  tags: z.array(z.string()).optional(),
+  categoryIds: z.array(z.string()).optional(),
+  images: z.array(z.object({
+    url: z.string(),
+    position: z.number()
+  })).optional(),
+  options: z.array(z.object({
+    name: z.string(),
+    values: z.array(z.string())
+  })).optional(),
+  variants: z.array(z.object({
+    price: z.number(),
+    quantity: z.number(),
+    sku: z.string().optional(),
+    imageId: z.string().optional(),
+    optionValues: z.array(z.object({
+      optionName: z.string(),
+      value: z.string()
+    }))
+  })).optional(),
+}).partial();
+
 
 interface RouteParams {
-  params: Promise<{
-    id: string
-  }>
+  params: {
+    id: string;
+  };
 }
 
-export async function GET(
-  request: NextRequest,
-  { params }: RouteParams
-) {
+export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
-    const { id } = await params
-    const product = await ProductService.getProductById(id)
-    
+    const product = await ProductService.getProduct(params.id);
     if (!product) {
-      return NextResponse.json(
-        { error: 'Product not found' },
-        { status: 404 }
-      )
+      return NextResponse.json({ error: 'Product not found' }, { status: 404 });
     }
-
-    return NextResponse.json(product)
+    return NextResponse.json(product);
   } catch (error) {
-    console.error('Error fetching product:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch product' },
-      { status: 500 }
-    )
+    console.error('Error fetching product:', error);
+    return NextResponse.json({ error: 'Failed to fetch product' }, { status: 500 });
   }
 }
 
-export async function PUT(
-  request: NextRequest,
-  { params }: RouteParams
-) {
+export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
-    const { id } = await params
-    // Check if user is admin
-    const user = await getAuthenticatedUser()
-    if (!user || user.user_metadata?.role !== 'ADMIN') {
-      return NextResponse.json(
-        { error: 'Admin access required' },
-        { status: 403 }
-      )
+    const { id } = params;
+    const body = await request.json();
+    const validation = productUpdateSchema.safeParse(body);
+
+    if (!validation.success) {
+      return NextResponse.json({ error: 'Invalid product data', details: validation.error.errors }, { status: 400 });
     }
 
-    // Temporarily disabled - will implement once database is configured
-    return NextResponse.json(
-      { error: 'Product updates temporarily disabled' },
-      { status: 501 }
-    )
+    const updatedProduct = await ProductService.updateProduct(id, validation.data);
+
+    return NextResponse.json(updatedProduct);
   } catch (error) {
-    console.error('Error updating product:', error)
-    return NextResponse.json(
-      { error: 'Failed to update product' },
-      { status: 500 }
-    )
+    console.error('Error updating product:', error);
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: 'Invalid data', details: error.errors }, { status: 400 });
+    }
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
 
-export async function DELETE(
-  request: NextRequest,
-  { params }: RouteParams
-) {
+export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
-    const { id } = await params
-    // Check if user is admin
-    const user = await getAuthenticatedUser()
-    if (!user || user.user_metadata?.role !== 'ADMIN') {
-      return NextResponse.json(
-        { error: 'Admin access required' },
-        { status: 403 }
-      )
-    }
-
-    // Temporarily disabled - will implement once database is configured
-    return NextResponse.json(
-      { error: 'Product deletion temporarily disabled' },
-      { status: 501 }
-    )
+    const { id } = params;
+    await ProductService.deleteProduct(id);
+    return new NextResponse(null, { status: 204 });
   } catch (error) {
-    console.error('Error deleting product:', error)
-    return NextResponse.json(
-      { error: 'Failed to delete product' },
-      { status: 500 }
-    )
+    console.error('Error deleting product:', error);
+    return NextResponse.json({ error: 'Failed to delete product' }, { status: 500 });
   }
 }
