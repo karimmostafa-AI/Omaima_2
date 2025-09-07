@@ -686,3 +686,40 @@ export interface SearchResult<T> {
     tags: Array<{ name: string; count: number }>;
   };
 }
+
+// =============================================
+// Refund Management Types
+// =============================================
+
+export type RefundStatus = 'pending' | 'approved' | 'rejected' | 'completed';
+export type RefundPaymentStatus = 'pending' | 'processing' | 'refunded' | 'failed';
+
+export interface RefundItem {
+  productId: string;
+  name: string;
+  quantity: number;
+  price: number;
+}
+
+export interface Refund {
+  id: string;
+  orderId: string;
+  returnDate: string;
+  customer: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  shop: {
+    id: string;
+    name: string;
+  };
+  items: RefundItem[];
+  amount: number;
+  status: RefundStatus;
+  paymentStatus: RefundPaymentStatus;
+  reason: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
