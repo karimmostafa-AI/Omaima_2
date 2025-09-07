@@ -101,8 +101,35 @@ export const getOrderById = async (orderId: string): Promise<Order | null> => {
   console.log(`Fetching order with ID: ${orderId}`);
   // In a real application, you would fetch this data from your database or API
   // For now, we'll return the mock data if the ID matches.
-  if (orderId === 'ord_12345') {
-    return Promise.resolve(mockOrder);
+  const order = mockOrders.find(o => o.id === orderId);
+  return Promise.resolve(order || null);
+};
+
+const mockOrders: Order[] = [
+  { ...mockOrder, id: 'ord_12345', order_number: '1001', status: 'processing', financial_status: 'paid', created_at: '2024-07-28T14:48:00.000Z' },
+  { ...mockOrder, id: 'ord_12346', order_number: '1002', status: 'pending', financial_status: 'pending', created_at: '2024-07-29T10:20:00.000Z', customer: { ...mockCustomer, id: 'cus_124', first_name: 'Jane', last_name: 'Smith' } },
+  { ...mockOrder, id: 'ord_12347', order_number: '1003', status: 'confirmed', financial_status: 'paid', created_at: '2024-07-29T11:30:00.000Z', customer: { ...mockCustomer, id: 'cus_125', first_name: 'Peter', last_name: 'Jones' } },
+  { ...mockOrder, id: 'ord_12348', order_number: '1004', status: 'shipped', financial_status: 'paid', created_at: '2024-07-29T12:00:00.000Z', customer: { ...mockCustomer, id: 'cus_126', first_name: 'Mary', last_name: 'Johnson' } },
+  { ...mockOrder, id: 'ord_12349', order_number: '1005', status: 'delivered', financial_status: 'paid', created_at: '2024-07-30T09:00:00.000Z', customer: { ...mockCustomer, id: 'cus_127', first_name: 'Chris', last_name: 'Lee' } },
+  { ...mockOrder, id: 'ord_12350', order_number: '1006', status: 'cancelled', financial_status: 'refunded', created_at: '2024-07-30T14:00:00.000Z', customer: { ...mockCustomer, id: 'cus_128', first_name: 'Patricia', last_name: 'Brown' } },
+];
+
+interface GetOrdersParams {
+  status?: OrderStatus | 'all';
+  page?: number;
+  limit?: number;
+}
+
+export const getOrders = async ({ status = 'all', page = 1, limit = 10 }: GetOrdersParams = {}): Promise<{ orders: Order[], total: number }> => {
+  console.log(`Fetching orders with status: ${status}, page: ${page}, limit: ${limit}`);
+
+  let filteredOrders = mockOrders;
+
+  if (status && status !== 'all') {
+    filteredOrders = mockOrders.filter(order => order.status === status);
   }
-  return Promise.resolve(null);
+
+  const paginatedOrders = filteredOrders.slice((page - 1) * limit, page * limit);
+
+  return Promise.resolve({ orders: paginatedOrders, total: filteredOrders.length });
 };
