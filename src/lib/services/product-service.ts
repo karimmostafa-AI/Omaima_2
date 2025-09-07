@@ -238,6 +238,14 @@ export class ProductService {
     })
   }
 
+  // Toggle product status (Admin only)
+  static async toggleProductStatus(id: string, status: ProductStatus) {
+    return await prisma.product.update({
+      where: { id },
+      data: { status },
+    });
+  }
+
   // Get all categories
   static async getCategories() {
     return await prisma.category.findMany({
