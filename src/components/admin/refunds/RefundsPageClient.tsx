@@ -52,14 +52,17 @@ const RefundsPageClient = ({ initialRefunds, total, page, limit }: RefundsPageCl
     });
   };
 
-  // This is a placeholder, as the table component is not fully interactive yet.
-  // In a real implementation, you would pass these handlers to the table component.
-  console.log(handleProcessRefund, handleViewDetails);
-
   return (
     <>
       <RefundFilters />
-      <RefundTable refunds={refunds} total={total} page={page} limit={limit} />
+      <RefundTable
+        refunds={refunds}
+        total={total}
+        page={page}
+        limit={limit}
+        onViewDetails={handleViewDetails}
+        onProcessRefund={handleProcessRefund}
+      />
       <StatusUpdateModal
         refund={selectedRefund}
         isOpen={isModalOpen}
