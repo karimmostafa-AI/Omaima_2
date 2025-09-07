@@ -109,6 +109,7 @@ model Product {
   // Relationships
   categories              Category[]
   images                  ProductImage[]
+  options                 ProductOption[]
   variants                ProductVariant[]
   customizationTemplates  CustomizationTemplate[]
   orderItems              OrderItem[]
@@ -131,38 +132,63 @@ model ProductImage {
   @@map("product_images")
 }
 
-enum InventoryPolicy {
-  DENY
-  CONTINUE
+// New models for advanced product variants
+
+model ProductOption {
+  id        String   @id @default(cuid())
+  productId String   @map("product_id")
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  name      String   // e.g., "Size", "Color"
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  values    ProductOptionValue[]
+
+  @@map("product_options")
+}
+
+model ProductOptionValue {
+  id              String   @id @default(cuid())
+  productOptionId String   @map("product_option_id")
+  productOption   ProductOption @relation(fields: [productOptionId], references: [id], onDelete: Cascade)
+  value           String   // e.g., "Small", "Red"
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  variantValueLinks ProductVariantOptionValue[]
+
+  @@map("product_option_values")
 }
 
 model ProductVariant {
-  id              String          @id @default(cuid())
-  productId       String          @map("product_id")
-  product         Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
-  title           String
-  option1         String?
-  option2         String?
-  option3         String?
-  sku             String?         @unique
-  price           Decimal         @db.Decimal(10, 2)
-  compareAtPrice  Decimal?        @map("compare_at_price") @db.Decimal(10, 2)
-  costPrice       Decimal?        @map("cost_price") @db.Decimal(10, 2)
-  position        Int             @default(0)
-  quantity        Int             @default(0)
-  imageId         String?         @map("image_id")
-  weight          Decimal?        @db.Decimal(8, 2)
-  requiresShipping Boolean        @default(true) @map("requires_shipping")
-  taxable         Boolean         @default(true)
-  inventoryPolicy InventoryPolicy @default(DENY) @map("inventory_policy")
-  createdAt       DateTime        @default(now()) @map("created_at")
-  updatedAt       DateTime        @updatedAt @map("updated_at")
+  id          String   @id @default(cuid())
+  productId   String   @map("product_id")
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  imageId     String?  @map("image_id")
+  image       ProductImage? @relation(fields: [imageId], references: [id], onDelete: SetNull)
+  sku         String?  @unique
+  price       Decimal  @db.Decimal(10, 2)
+  quantity    Int      @default(0)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
   
-  // Relationships
-  orderItems      OrderItem[]
-  cartItems       CartItem[]
-  
+  optionValues ProductVariantOptionValue[]
+  orderItems   OrderItem[]
+  cartItems    CartItem[]
+
   @@map("product_variants")
+}
+
+// Pivot table to link variants to their specific option values
+model ProductVariantOptionValue {
+  productVariantId    String @map("product_variant_id")
+  productOptionValueId String @map("product_option_value_id")
+
+  variant     ProductVariant     @relation(fields: [productVariantId], references: [id], onDelete: Cascade)
+  optionValue ProductOptionValue @relation(fields: [productOptionValueId], references: [id], onDelete: Cascade)
+
+  @@id([productVariantId, productOptionValueId])
+  @@map("product_variant_option_values")
 }
 
 // =============================================
