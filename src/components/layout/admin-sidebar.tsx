@@ -30,8 +30,6 @@ import {
   FileText,
   Crown,
   Zap,
-  Share2,
-  Mail,
   ShieldCheck,
 } from 'lucide-react'
 
@@ -140,18 +138,18 @@ const menuItems: MenuItem[] = [
     ],
   },
   {
-    title: 'Customer Management',
+    title: 'Staff Management',
     icon: Users,
     children: [
       {
-        title: 'All Customers',
-        href: '/admin/customers',
+        title: 'All Employees',
+        href: '/admin/employees',
         icon: Users,
       },
       {
-        title: 'Customer Groups',
-        href: '/admin/customer-groups',
-        icon: Users,
+        title: 'Roles & Permissions',
+        href: '/admin/roles',
+        icon: ShieldCheck,
       },
     ],
   },
@@ -177,47 +175,6 @@ const menuItems: MenuItem[] = [
     ],
   },
   {
-    title: 'Third-Party Services',
-    icon: Share2,
-    children: [
-      {
-        title: 'Payment Gateways',
-        href: '/admin/settings/payment',
-        icon: CreditCard,
-      },
-      {
-        title: 'Mail Configuration',
-        href: '/admin/settings/mail',
-        icon: Mail,
-      },
-      {
-        title: 'SMS Gateways',
-        href: '/admin/settings/sms',
-        icon: MessageCircle,
-      },
-      {
-        title: 'Pusher Setup',
-        href: '/admin/settings/pusher',
-        icon: Zap,
-      },
-      {
-        title: 'Firebase Notifications',
-        href: '/admin/settings/firebase',
-        icon: Bell,
-      },
-      {
-        title: 'Google ReCaptcha',
-        href: '/admin/settings/recaptcha',
-        icon: ShieldCheck,
-      },
-      {
-        title: 'Social Authentication',
-        href: '/admin/settings/social',
-        icon: Users,
-      },
-    ],
-  },
-  {
     title: 'System Settings',
     icon: Settings,
     children: [
@@ -225,6 +182,11 @@ const menuItems: MenuItem[] = [
         title: 'General Settings',
         href: '/admin/settings/general',
         icon: Settings,
+      },
+      {
+        title: 'Payment Gateway',
+        href: '/admin/settings/payment',
+        icon: CreditCard,
       },
       {
         title: 'Delivery Charges',
