@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { ProductService } from '@/lib/services/product-service';
 import { z } from 'zod';
+import { getCurrentUser, isAdmin } from '@/lib/auth';
 
 const getProductsSchema = z.object({
   category: z.string().optional(),
@@ -34,19 +35,18 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  try {
-    const body = await request.json();
-    // The validation schema needs to be updated to match the form data
-    // For now, we'll just log the body and return a mock success response.
-    console.log("Received product creation data:", body);
+  const user = await getCurrentUser();
 
-    // In a real app, you would map the form data to the service's expected format
-    // and call the createProduct function.
-    // const newProduct = await ProductService.createProduct(mappedData);
-
-    return NextResponse.json({ success: true, message: "Product created (mocked)" }, { status: 201 });
-  } catch (error) {
-    console.error('Failed to create product:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  if (!isAdmin(user)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
+
+  // TODO: Add Zod validation for the request body in Sprint 2
+  // TODO: Implement the actual product creation logic in Sprint 2
+
+  // For now, return 503 to indicate the endpoint is temporarily disabled
+  return NextResponse.json(
+    { error: 'Endpoint temporarily disabled for security hardening.' },
+    { status: 503 }
+  );
 }

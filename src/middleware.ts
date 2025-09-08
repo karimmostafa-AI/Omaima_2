@@ -18,10 +18,9 @@ interface RouteConfig {
 const protectedRoutes: Record<string, RouteConfig> = {
   // Admin routes - simplified security (no complex auth)
   admin: {
-    paths: ['/admin/protected'], // Only protect specific admin routes
+    paths: ['/admin'], // Protect the entire admin path
     requiredRoles: ['ADMIN'],
-    requiresMFA: false, // Disabled MFA requirement
-    // Removed IP whitelist and additional security
+    requiresMFA: true, // Enforce MFA for all admin routes
   },
   // Staff routes - moderate security
   staff: {
@@ -58,11 +57,7 @@ const publicRoutes = [
   '/api/setup-admin',
   '/products',
   '/about',
-  '/contact',
-  '/setup-admin',
-  '/admin-no-auth',
-  '/admin-simple',
-  '/test-admin'
+  '/contact'
 ];
 
 // Routes that should bypass middleware entirely
@@ -134,7 +129,10 @@ export async function middleware(request: NextRequest) {
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
     if (sessionError || !session?.user) {
-      // Redirect to login with return URL
+      if (pathname.startsWith('/api/')) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+      // Redirect to login with return URL for web pages
       const redirectUrl = new URL('/auth/login', request.url);
       redirectUrl.searchParams.set('redirect', pathname);
       return NextResponse.redirect(redirectUrl);
@@ -165,6 +163,9 @@ export async function middleware(request: NextRequest) {
 
     if (userError || !user) {
       console.error('User fetch error:', userError);
+      if (pathname.startsWith('/api/')) {
+        return NextResponse.json({ error: 'Invalid user session' }, { status: 401 });
+      }
       const redirectUrl = new URL('/auth/login', request.url);
       redirectUrl.searchParams.set('redirect', pathname);
       return NextResponse.redirect(redirectUrl);
@@ -418,12 +419,11 @@ export const config = {
   matcher: [
     /*
      * Match all request paths except for the ones starting with:
-     * - api (API routes, handled separately)
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      * - public files (png, jpg, jpeg, gif, svg, webp)
      */
-    '/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:png|jpg|jpeg|gif|svg|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:png|jpg|jpeg|gif|svg|webp)$).*)',
   ],
 };
