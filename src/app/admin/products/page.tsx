@@ -1,6 +1,7 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ColumnDef } from '@tanstack/react-table'
 import { AdminLayout } from '@/components/layout/admin-layout'
 import { DataTable, DataTableColumnHeader, DataTableRowActions } from '@/components/ui/data-table'
@@ -8,248 +9,245 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { formatPrice } from '@/lib/utils'
+import { ProductFormModal } from '@/components/forms/product-form'
 import { 
   Plus, 
-  Eye, 
-  Edit, 
-  Trash2, 
-  MoreHorizontal,
   CheckCircle,
   XCircle,
   AlertCircle,
-  Package
+  Package,
+  Loader2
 } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Product } from '@/types'
+import { useToast } from '@/components/ui/use-toast'
 
-// Mock data - replace with real data fetching
-interface Product {
-  id: string
-  name: string
-  sku: string
-  thumbnail: string
-  price: number
-  discountPrice?: number
-  category: string
-  stock: number
-  status: 'active' | 'inactive' | 'draft'
-  isApproved: boolean
-  shop: {
-    name: string
-    id: string
+// API functions
+async function fetchProducts(): Promise<Product[]> {
+  const response = await fetch('/api/products')
+  if (!response.ok) {
+    throw new Error('Failed to fetch products')
   }
-  createdAt: string
+  const data = await response.json()
+  return data.products || []
 }
 
-const mockProducts: Product[] = [
-  {
-    id: '1',
-    name: 'Professional Blazer Set',
-    sku: 'BLZ-001',
-    thumbnail: '/products/blazer.jpg',
-    price: 199.99,
-    discountPrice: 179.99,
-    category: 'Blazers',
-    stock: 25,
-    status: 'active',
-    isApproved: true,
-    shop: { name: 'Omaima Store', id: '1' },
-    createdAt: '2024-01-15T10:30:00Z'
-  },
-  {
-    id: '2',
-    name: 'Executive Pants',
-    sku: 'PNT-002',
-    thumbnail: '/products/pants.jpg',
-    price: 89.99,
-    category: 'Pants',
-    stock: 15,
-    status: 'active',
-    isApproved: false,
-    shop: { name: 'Professional Wear', id: '2' },
-    createdAt: '2024-01-10T14:20:00Z'
-  },
-  // Add more mock products...
-]
-
-const columns: ColumnDef<Product>[] = [
-  {
-    id: 'select',
-    header: ({ table }) => (
-      <Checkbox
-        checked={table.getIsAllPageRowsSelected()}
-        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-        aria-label="Select all"
-      />
-    ),
-    cell: ({ row }) => (
-      <Checkbox
-        checked={row.getIsSelected()}
-        onCheckedChange={(value) => row.toggleSelected(!!value)}
-        aria-label="Select row"
-      />
-    ),
-    enableSorting: false,
-    enableHiding: false,
-  },
-  {
-    accessorKey: 'thumbnail',
-    header: 'Image',
-    cell: ({ row }) => (
-      <Avatar className="h-12 w-12">
-        <AvatarImage 
-          src={row.getValue('thumbnail')} 
-          alt={row.getValue('name')}
-          className="object-cover"
-        />
-        <AvatarFallback>IMG</AvatarFallback>
-      </Avatar>
-    ),
-    enableSorting: false,
-  },
-  {
-    accessorKey: 'name',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Product Name" />
-    ),
-    cell: ({ row }) => {
-      const product = row.original
-      return (
-        <div className="space-y-1">
-          <div className="font-medium">{product.name}</div>
-          <div className="text-sm text-muted-foreground">
-            SKU: {product.sku}
-          </div>
-        </div>
-      )
-    },
-  },
-  {
-    accessorKey: 'shop',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Shop" />
-    ),
-    cell: ({ row }) => {
-      const shop = row.getValue('shop') as Product['shop']
-      return (
-        <div className="font-medium text-blue-600 hover:underline cursor-pointer">
-          {shop.name}
-        </div>
-      )
-    },
-  },
-  {
-    accessorKey: 'category',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Category" />
-    ),
-    cell: ({ row }) => (
-      <Badge variant="outline">{row.getValue('category')}</Badge>
-    ),
-  },
-  {
-    accessorKey: 'price',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Price" />
-    ),
-    cell: ({ row }) => {
-      const price = row.getValue('price') as number
-      const discountPrice = row.original.discountPrice
-      
-      return (
-        <div className="space-y-1">
-          <div className="font-medium">{formatPrice(price)}</div>
-          {discountPrice && (
-            <div className="text-sm text-green-600 font-medium">
-              {formatPrice(discountPrice)}
-            </div>
-          )}
-        </div>
-      )
-    },
-  },
-  {
-    accessorKey: 'stock',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Stock" />
-    ),
-    cell: ({ row }) => {
-      const stock = row.getValue('stock') as number
-      return (
-        <Badge 
-          variant={stock > 10 ? 'secondary' : stock > 0 ? 'destructive' : 'outline'}
-        >
-          {stock} units
-        </Badge>
-      )
-    },
-  },
-  {
-    accessorKey: 'status',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Status" />
-    ),
-    cell: ({ row }) => {
-      const status = row.getValue('status') as string
-      const isApproved = row.original.isApproved
-      
-      return (
-        <div className="flex items-center gap-2">
-          <Badge
-            variant={status === 'active' ? 'secondary' : status === 'inactive' ? 'destructive' : 'outline'}
-          >
-            {status}
-          </Badge>
-          {isApproved ? (
-            <CheckCircle className="h-4 w-4 text-green-500" />
-          ) : (
-            <AlertCircle className="h-4 w-4 text-yellow-500" />
-          )}
-        </div>
-      )
-    },
-  },
-  {
-    id: 'actions',
-    enableHiding: false,
-    cell: ({ row }) => {
-      const product = row.original
-      
-      const actions = product.isApproved ? [
-        {
-          label: 'View Details',
-          onClick: (product: Product) => console.log('View', product.id),
-        },
-        {
-          label: 'Edit Product',
-          onClick: (product: Product) => console.log('Edit', product.id),
-        },
-        {
-          label: 'Delete',
-          onClick: (product: Product) => console.log('Delete', product.id),
-          variant: 'destructive' as const,
-        },
-      ] : [
-        {
-          label: 'Approve',
-          onClick: (product: Product) => console.log('Approve', product.id),
-        },
-        {
-          label: 'Reject',
-          onClick: (product: Product) => console.log('Reject', product.id),
-          variant: 'destructive' as const,
-        },
-      ]
-
-      return <DataTableRowActions row={row} actions={actions} />
-    },
-  },
-]
+async function deleteProduct(id: string): Promise<void> {
+  const response = await fetch(`/api/products/${id}`, { method: 'DELETE' })
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || 'Failed to delete product');
+  }
+}
 
 export default function AdminProductsPage() {
+  const queryClient = useQueryClient()
+  const { toast } = useToast()
+
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
+
+  const { data: products = [], isLoading, error } = useQuery<Product[]>({
+    queryKey: ['adminProducts'],
+    queryFn: fetchProducts,
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteProduct,
+    onSuccess: () => {
+      toast({ title: 'Success', description: 'Product deleted successfully.' })
+      queryClient.invalidateQueries({ queryKey: ['adminProducts'] })
+    },
+    onError: (error) => {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.message,
+      })
+    },
+  })
+
+  const handleAddProduct = () => {
+    setSelectedProduct(null)
+    setIsModalOpen(true)
+  }
+
+  const handleEditProduct = (product: Product) => {
+    setSelectedProduct(product)
+    setIsModalOpen(true)
+  }
+
+  const handleDeleteProduct = (id: string) => {
+    if (window.confirm('Are you sure you want to delete this product?')) {
+      deleteMutation.mutate(id)
+    }
+  }
+
+  const columns: ColumnDef<Product>[] = [
+    {
+      id: 'select',
+      header: ({ table }) => (
+        <Checkbox
+          checked={table.getIsAllPageRowsSelected()}
+          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+          aria-label="Select all"
+        />
+      ),
+      cell: ({ row }) => (
+        <Checkbox
+          checked={row.getIsSelected()}
+          onCheckedChange={(value) => row.toggleSelected(!!value)}
+          aria-label="Select row"
+        />
+      ),
+      enableSorting: false,
+      enableHiding: false,
+    },
+    {
+      accessorKey: 'images',
+      header: 'Image',
+      cell: ({ row }) => {
+        const images = row.getValue('images') as { url: string; altText: string }[]
+        const firstImage = images?.[0]?.url
+        return (
+          <Avatar className="h-12 w-12">
+            <AvatarImage
+              src={firstImage}
+              alt={row.original.name}
+              className="object-cover"
+            />
+            <AvatarFallback>IMG</AvatarFallback>
+          </Avatar>
+        )
+      },
+      enableSorting: false,
+    },
+    {
+      accessorKey: 'name',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Product Name" />
+      ),
+      cell: ({ row }) => {
+        const product = row.original
+        return (
+          <div className="space-y-1">
+            <div className="font-medium">{product.name}</div>
+            <div className="text-sm text-muted-foreground">
+              SKU: {product.sku}
+            </div>
+          </div>
+        )
+      },
+    },
+    {
+      accessorKey: 'category',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Category" />
+      ),
+      cell: ({ row }) => (
+        <Badge variant="outline">{row.original.category?.name || 'N/A'}</Badge>
+      ),
+    },
+    {
+      accessorKey: 'price',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Price" />
+      ),
+      cell: ({ row }) => {
+        const price = row.getValue('price') as number
+        const discountPrice = row.original.compareAtPrice
+
+        return (
+          <div className="space-y-1">
+            <div className="font-medium">{formatPrice(price)}</div>
+            {discountPrice && (
+              <div className="text-sm text-green-600 font-medium">
+                {formatPrice(discountPrice)}
+              </div>
+            )}
+          </div>
+        )
+      },
+    },
+    {
+      accessorKey: 'quantity',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Stock" />
+      ),
+      cell: ({ row }) => {
+        const stock = row.getValue('quantity') as number
+        return (
+          <Badge
+            variant={stock > 10 ? 'secondary' : stock > 0 ? 'destructive' : 'outline'}
+          >
+            {stock} units
+          </Badge>
+        )
+      },
+    },
+    {
+      accessorKey: 'status',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Status" />
+      ),
+      cell: ({ row }) => {
+        const status = row.getValue('status') as string
+        return (
+          <div className="flex items-center gap-2">
+            <Badge
+              variant={status === 'ACTIVE' ? 'secondary' : status === 'INACTIVE' ? 'destructive' : 'outline'}
+              className="capitalize"
+            >
+              {status.toLowerCase()}
+            </Badge>
+          </div>
+        )
+      },
+    },
+    {
+      id: 'actions',
+      enableHiding: false,
+      cell: ({ row }) => {
+        const product = row.original
+
+        const actions = [
+          {
+            label: 'Edit Product',
+            onClick: () => handleEditProduct(product),
+          },
+          {
+            label: 'Delete',
+            onClick: () => handleDeleteProduct(product.id),
+            variant: 'destructive' as const,
+          },
+        ]
+
+        return <DataTableRowActions row={row} actions={actions} />
+      },
+    },
+  ]
+
+  if (isLoading) {
+    return (
+      <AdminLayout>
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      </AdminLayout>
+    )
+  }
+
+  if (error) {
+    return (
+      <AdminLayout>
+        <div className="text-red-500">Error: {(error as Error).message}</div>
+      </AdminLayout>
+    )
+  }
+
   return (
     <AdminLayout title="Product Management" subtitle="Manage your product catalog">
       <div className="space-y-6">
-        {/* Header Actions */}
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Products</h1>
@@ -257,64 +255,30 @@ export default function AdminProductsPage() {
               Manage and monitor all products in the system
             </p>
           </div>
-          <Button>
+          <Button onClick={handleAddProduct}>
             <Plus className="mr-2 h-4 w-4" />
             Add Product
           </Button>
         </div>
 
-        {/* Stats Cards */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
-            <div className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <div className="text-sm font-medium">Total Products</div>
-              <Package className="h-4 w-4 text-muted-foreground" />
-            </div>
-            <div className="text-2xl font-bold">1,234</div>
-            <p className="text-xs text-muted-foreground">
-              +20.1% from last month
-            </p>
-          </div>
-          <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
-            <div className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <div className="text-sm font-medium">Active Products</div>
-              <CheckCircle className="h-4 w-4 text-muted-foreground" />
-            </div>
-            <div className="text-2xl font-bold">892</div>
-            <p className="text-xs text-muted-foreground">
-              +5.4% from last month
-            </p>
-          </div>
-          <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
-            <div className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <div className="text-sm font-medium">Pending Approval</div>
-              <AlertCircle className="h-4 w-4 text-muted-foreground" />
-            </div>
-            <div className="text-2xl font-bold">45</div>
-            <p className="text-xs text-muted-foreground">
-              +12 since yesterday
-            </p>
-          </div>
-          <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
-            <div className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <div className="text-sm font-medium">Out of Stock</div>
-              <XCircle className="h-4 w-4 text-muted-foreground" />
-            </div>
-            <div className="text-2xl font-bold">23</div>
-            <p className="text-xs text-muted-foreground">
-              -2 from yesterday
-            </p>
-          </div>
+          {/* Stats Cards could be implemented here */}
         </div>
 
-        {/* Data Table */}
         <DataTable
           columns={columns}
-          data={mockProducts}
+          data={products}
           searchKey="name"
           searchPlaceholder="Search products..."
         />
       </div>
+
+      <ProductFormModal
+        open={isModalOpen}
+        onOpenChange={setIsModalOpen}
+        initialData={selectedProduct}
+        mode={selectedProduct ? 'edit' : 'create'}
+      />
     </AdminLayout>
   )
 }

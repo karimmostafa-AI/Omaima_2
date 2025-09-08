@@ -9,9 +9,10 @@ interface ToastProps {
   variant?: 'default' | 'destructive';
 }
 
-// A mock toast function that just logs to the console.
+// A mock toast function. In a real app, this would be connected to a Toast provider.
 const toast = (props: ToastProps) => {
-  console.log(`Toast: ${props.title} - ${props.description} (${props.variant || 'default'})`);
+  // This is intentionally left blank for this project.
+  // In a real application, you would integrate a toast library here.
 };
 
 export function useToast() {

@@ -30,7 +30,6 @@ const CategoriesList = ({ categories, total, page, limit }: CategoriesListProps)
 
   const handleStatusChange = async (categoryId: string, isActive: boolean) => {
     // This would call an API to update the status
-    console.log(`Updating category ${categoryId} to ${isActive ? 'active' : 'inactive'}`);
   };
 
   return (

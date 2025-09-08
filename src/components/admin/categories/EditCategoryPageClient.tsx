@@ -24,8 +24,6 @@ const EditCategoryPageClient = ({ category }: EditCategoryPageClientProps) => {
 
   const handleSubmit = async (data: FormData) => {
     startTransition(async () => {
-      console.log('Updating category with data:', data);
-
       const response = await fetch(`/api/admin/categories/${category.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -36,7 +34,7 @@ const EditCategoryPageClient = ({ category }: EditCategoryPageClientProps) => {
         router.push('/admin/categories');
         router.refresh();
       } else {
-        console.error('Failed to update category');
+        // Handle error
       }
     });
   };

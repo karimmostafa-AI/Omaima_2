@@ -213,7 +213,7 @@ export const useAuthStore = create<AuthStore>()(
 
           return { error: 'Authentication failed' }
         } catch (error) {
-          console.error('Sign in error:', error)
+          // In production, use a proper logging service
           return { error: 'An unexpected error occurred' }
         } finally {
           set({ loading: false })
@@ -266,7 +266,7 @@ export const useAuthStore = create<AuthStore>()(
 
           return {}
         } catch (error) {
-          console.error('Sign up error:', error)
+          // In production, use a proper logging service
           return { error: 'An unexpected error occurred' }
         } finally {
           set({ loading: false })
@@ -303,7 +303,7 @@ export const useAuthStore = create<AuthStore>()(
             adminPermissions: []
           })
         } catch (error) {
-          console.error('Error signing out:', error)
+          // In production, use a proper logging service
         } finally {
           set({ loading: false })
         }
@@ -328,7 +328,7 @@ export const useAuthStore = create<AuthStore>()(
 
           return {}
         } catch (error) {
-          console.error('Reset password error:', error)
+          // In production, use a proper logging service
           return { error: 'An unexpected error occurred' }
         }
       },
@@ -356,7 +356,7 @@ export const useAuthStore = create<AuthStore>()(
 
           return {}
         } catch (error) {
-          console.error('Update password error:', error)
+          // In production, use a proper logging service
           return { error: 'An unexpected error occurred' }
         }
       },
@@ -381,7 +381,7 @@ export const useAuthStore = create<AuthStore>()(
 
           return {}
         } catch (error) {
-          console.error('Update profile error:', error)
+          // In production, use a proper logging service
           return { error: 'An unexpected error occurred' }
         }
       },
@@ -411,7 +411,7 @@ export const useAuthStore = create<AuthStore>()(
           // OAuth will redirect, so we'll handle success in the callback
           return {}
         } catch (error) {
-          console.error(`${provider} sign in error:`, error)
+          // In production, use a proper logging service
           return { error: 'An unexpected error occurred' }
         } finally {
           set({ loading: false })
@@ -446,7 +446,7 @@ export const useAuthStore = create<AuthStore>()(
           
           return {}
         } catch (error) {
-          console.error(`Link ${provider} account error:`, error)
+          // In production, use a proper logging service
           return { error: 'An unexpected error occurred' }
         }
       },
@@ -480,7 +480,7 @@ export const useAuthStore = create<AuthStore>()(
           
           return {}
         } catch (error) {
-          console.error(`Unlink ${provider} account error:`, error)
+          // In production, use a proper logging service
           return { error: 'An unexpected error occurred' }
         }
       },
@@ -531,7 +531,7 @@ export const useAuthStore = create<AuthStore>()(
 
           return adminSession
         } catch (error) {
-          console.error('Create admin session error:', error)
+          // In production, use a proper logging service
           return null
         }
       },
@@ -601,7 +601,7 @@ export const useAuthStore = create<AuthStore>()(
 
           return { secret, qrCode, backupCodes }
         } catch (error) {
-          console.error('Enable MFA error:', error)
+          // In production, use a proper logging service
           return { secret: '', qrCode: '', backupCodes: [], error: 'Failed to enable MFA' }
         }
       },
@@ -643,7 +643,7 @@ export const useAuthStore = create<AuthStore>()(
 
           return {}
         } catch (error) {
-          console.error('Disable MFA error:', error)
+          // In production, use a proper logging service
           return { error: 'Failed to disable MFA' }
         }
       },
@@ -658,7 +658,7 @@ export const useAuthStore = create<AuthStore>()(
           const isValid = await verifyTOTPCode(user.id, code)
           return { success: isValid, error: isValid ? undefined : 'Invalid code' }
         } catch (error) {
-          console.error('Verify MFA error:', error)
+          // In production, use a proper logging service
           return { success: false, error: 'Failed to verify code' }
         }
       },
@@ -684,7 +684,7 @@ export const useAuthStore = create<AuthStore>()(
 
           return { codes: backupCodes }
         } catch (error) {
-          console.error('Generate backup codes error:', error)
+          // In production, use a proper logging service
           return { codes: [], error: 'Failed to generate backup codes' }
         }
       },
@@ -704,9 +704,8 @@ export const useAuthStore = create<AuthStore>()(
           localStorage.setItem('security_events', JSON.stringify(events.slice(-100))) // Keep last 100 events
 
           // In production, this would send to a security monitoring service
-          console.log('Security Event:', fullEvent)
         } catch (error) {
-          console.error('Failed to log security event:', error)
+          // In production, use a proper logging service
         }
       },
 
@@ -719,7 +718,7 @@ export const useAuthStore = create<AuthStore>()(
             timestamp: new Date(event.timestamp)
           }))
         } catch (error) {
-          console.error('Failed to get security events:', error)
+          // In production, use a proper logging service
           return []
         }
       },
@@ -738,7 +737,7 @@ export const useAuthStore = create<AuthStore>()(
 
           return { suspicious: false }
         } catch (error) {
-          console.error('Failed to check suspicious activity:', error)
+          // In production, use a proper logging service
           return { suspicious: false }
         }
       },
@@ -753,7 +752,7 @@ export const useAuthStore = create<AuthStore>()(
             set({ session: data.session })
           }
         } catch (error) {
-          console.error('Failed to refresh session:', error)
+          // In production, use a proper logging service
           await get().signOut()
         }
       },
@@ -769,7 +768,7 @@ export const useAuthStore = create<AuthStore>()(
           set({ session })
           return true
         } catch (error) {
-          console.error('Failed to validate session:', error)
+          // In production, use a proper logging service
           await get().signOut()
           return false
         }

@@ -120,7 +120,10 @@ export function withErrorHandler<T extends any[]>(
     try {
       return await handler(...args)
     } catch (error) {
-      console.error('API Error:', error)
+      // In a real app, you would use a logging service
+      if (process.env.NODE_ENV === 'development') {
+        console.error('API Error:', error)
+      }
       
       if (error instanceof ZodError) {
         return validationErrorResponse(error)
@@ -171,10 +174,11 @@ export function getAuthToken(request: NextRequest): string | null {
 
 // Request logging
 export function logRequest(request: NextRequest, startTime: number = Date.now()) {
-  if (process.env.NODE_ENV === 'development') {
-    const duration = Date.now() - startTime
-    console.log(`${request.method} ${request.url} - ${duration}ms`)
-  }
+  // This can be re-enabled for debugging if needed
+  // if (process.env.NODE_ENV === 'development') {
+  //   const duration = Date.now() - startTime
+  //   console.log(`${request.method} ${request.url} - ${duration}ms`)
+  // }
 }
 
 // Search and filter helpers

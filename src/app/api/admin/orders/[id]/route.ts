@@ -40,17 +40,14 @@ export async function PATCH(
 
     switch (action) {
       case 'change_status':
-        console.log(`Updating order ${orderId} status to: ${parsedBody.data.status}`);
         // In a real app, update the database here
         return NextResponse.json({ success: true, message: `Order ${orderId} status updated to ${parsedBody.data.status}` });
 
       case 'change_payment_status':
-        console.log(`Updating order ${orderId} payment status to: ${parsedBody.data.isPaid ? 'Paid' : 'Unpaid'}`);
         // In a real app, update the database here
         return NextResponse.json({ success: true, message: `Order ${orderId} payment status updated` });
 
       case 'assign_rider':
-        console.log(`Assigning rider ${parsedBody.data.riderId} to order ${orderId}`);
         // In a real app, update the database here
         return NextResponse.json({ success: true, message: `Rider ${parsedBody.data.riderId} assigned to order ${orderId}` });
 

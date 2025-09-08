@@ -14,9 +14,9 @@ const isDemoMode = !supabaseUrl || !supabaseAnonKey ||
                   supabaseUrl === 'https://your-project.supabase.co'
 
 if (isDemoMode) {
-  console.log('🚀 Running in demo mode - using mock authentication')
+  // Running in demo mode
 } else if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn('⚠️ Missing Supabase environment variables - check your .env.local file')
+  // Missing Supabase environment variables
 }
 
 // Client-side Supabase client
@@ -82,7 +82,6 @@ if (typeof window === 'undefined' && typeof process !== 'undefined' && process.o
     })
   } catch (error) {
     // Ignore errors in Edge Runtime environment
-    console.debug('Process handlers not available in Edge Runtime')
   }
 }
 
@@ -168,6 +167,7 @@ export async function syncUserWithDatabase(supabaseUser: any) {
       })
     }
   } catch (error) {
+    // In production, use a proper logging service
     console.error('Error syncing user with database:', error)
     throw error
   }

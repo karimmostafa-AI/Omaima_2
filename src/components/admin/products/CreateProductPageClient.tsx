@@ -10,8 +10,6 @@ const CreateProductPageClient = () => {
 
   const handleSubmit = async (data: ProductFormData) => {
     startTransition(async () => {
-      console.log('Creating product with data:', data);
-
       // In a real app, you would handle file uploads properly here
       // For now, we'll just simulate the API call
       const response = await fetch('/api/products', {
@@ -24,7 +22,6 @@ const CreateProductPageClient = () => {
         router.push('/admin/products');
         router.refresh();
       } else {
-        console.error('Failed to create product');
         // TODO: Show an error message to the user
       }
     });
