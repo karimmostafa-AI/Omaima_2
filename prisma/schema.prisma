@@ -20,6 +20,12 @@ enum UserRole {
   ADMIN
 }
 
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
 model User {
   id              String   @id @default(cuid())
   email           String   @unique
@@ -27,6 +33,8 @@ model User {
   lastName        String?  @map("last_name")
   phone           String?
   avatarUrl       String?  @map("avatar_url")
+  gender          Gender?
+  dateOfBirth     DateTime? @map("date_of_birth")
   role            UserRole @default(CUSTOMER)
   emailVerified   Boolean  @default(false) @map("email_verified")
   passwordHash    String   @map("password_hash")
@@ -432,20 +440,6 @@ model CMSContent {
   publishedAt   DateTime?     @map("published_at")
   
   @@map("cms_content")
-}
-
-model Media {
-  id        String   @id @default(cuid())
-  fileName  String   @map("file_name")
-  url       String
-  altText   String?  @map("alt_text")
-  size      Int      // Size in bytes
-  width     Int?
-  height    Int?
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  @@map("media")
 }
 
 model HomePage {
