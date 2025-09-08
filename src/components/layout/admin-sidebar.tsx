@@ -32,6 +32,7 @@ import {
   Zap,
   Share2,
   Mail,
+  ShieldCheck,
 } from 'lucide-react'
 
 interface AdminSidebarProps {
@@ -188,6 +189,31 @@ const menuItems: MenuItem[] = [
         title: 'Mail Configuration',
         href: '/admin/settings/mail',
         icon: Mail,
+      },
+      {
+        title: 'SMS Gateways',
+        href: '/admin/settings/sms',
+        icon: MessageCircle,
+      },
+      {
+        title: 'Pusher Setup',
+        href: '/admin/settings/pusher',
+        icon: Zap,
+      },
+      {
+        title: 'Firebase Notifications',
+        href: '/admin/settings/firebase',
+        icon: Bell,
+      },
+      {
+        title: 'Google ReCaptcha',
+        href: '/admin/settings/recaptcha',
+        icon: ShieldCheck,
+      },
+      {
+        title: 'Social Authentication',
+        href: '/admin/settings/social',
+        icon: Users,
       },
     ],
   },

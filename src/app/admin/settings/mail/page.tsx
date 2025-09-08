@@ -12,12 +12,15 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { useToast } from "@/components/ui/use-toast";
 
 const mailConfigSchema = z.object({
-  mailer: z.literal('smtp'),
-  host: z.string().min(1, 'Host is required'),
-  port: z.coerce.number().min(1, 'Port is required'),
+  mailer: z.enum(['smtp', 'mailgun', 'postmark']),
+  host: z.string().optional(),
+  port: z.coerce.number().optional(),
   username: z.string().optional(),
   password: z.string().optional(),
   encryption: z.enum(['tls', 'ssl', 'none']).optional(),
+  mailgun_domain: z.string().optional(),
+  mailgun_secret: z.string().optional(),
+  postmark_token: z.string().optional(),
   from_address: z.string().email('Invalid from address'),
   from_name: z.string().min(1, 'From name is required'),
 });
@@ -112,12 +115,48 @@ export default function MailConfigurationPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <FormField name="host" render={({ field }) => (<FormItem><FormLabel>SMTP Host</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField name="port" render={({ field }) => (<FormItem><FormLabel>SMTP Port</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField name="username" render={({ field }) => (<FormItem><FormLabel>SMTP Username</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField name="password" render={({ field }) => (<FormItem><FormLabel>SMTP Password</FormLabel><FormControl><Input type="password" {...field} placeholder="•••••••• (leave blank to keep unchanged)" /></FormControl><FormMessage /></FormItem>)} />
-                <FormField name="encryption" render={({ field }) => (<FormItem><FormLabel>Encryption</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent><SelectItem value="tls">TLS</SelectItem><SelectItem value="ssl">SSL</SelectItem><SelectItem value="none">None</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
-                <FormField name="mailer" render={({ field }) => (<FormItem><FormLabel>Mailer</FormLabel><FormControl><Input {...field} disabled /></FormControl><FormMessage /></FormItem>)} />
+                <FormField
+                  name="mailer"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Mailer</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl>
+                        <SelectContent>
+                          <SelectItem value="smtp">SMTP</SelectItem>
+                          <SelectItem value="mailgun">Mailgun</SelectItem>
+                          <SelectItem value="postmark">Postmark</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <div></div> {/* Spacer */}
+
+                {form.watch('mailer') === 'smtp' && (
+                  <>
+                    <FormField name="host" render={({ field }) => (<FormItem><FormLabel>SMTP Host</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField name="port" render={({ field }) => (<FormItem><FormLabel>SMTP Port</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField name="username" render={({ field }) => (<FormItem><FormLabel>SMTP Username</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField name="password" render={({ field }) => (<FormItem><FormLabel>SMTP Password</FormLabel><FormControl><Input type="password" {...field} placeholder="•••••••• (leave blank to keep unchanged)" /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField name="encryption" render={({ field }) => (<FormItem><FormLabel>Encryption</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent><SelectItem value="tls">TLS</SelectItem><SelectItem value="ssl">SSL</SelectItem><SelectItem value="none">None</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
+                  </>
+                )}
+
+                {form.watch('mailer') === 'mailgun' && (
+                  <>
+                    <FormField name="mailgun_domain" render={({ field }) => (<FormItem><FormLabel>Mailgun Domain</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField name="mailgun_secret" render={({ field }) => (<FormItem><FormLabel>Mailgun Secret</FormLabel><FormControl><Input type="password" {...field} placeholder="•••••••• (leave blank to keep unchanged)" /></FormControl><FormMessage /></FormItem>)} />
+                  </>
+                )}
+
+                {form.watch('mailer') === 'postmark' && (
+                  <>
+                    <FormField name="postmark_token" render={({ field }) => (<FormItem><FormLabel>Postmark Token</FormLabel><FormControl><Input type="password" {...field} placeholder="•••••••• (leave blank to keep unchanged)" /></FormControl><FormMessage /></FormItem>)} />
+                  </>
+                )}
+
                 <FormField name="from_address" render={({ field }) => (<FormItem><FormLabel>From Address</FormLabel><FormControl><Input type="email" {...field} /></FormControl><FormMessage /></FormItem>)} />
                 <FormField name="from_name" render={({ field }) => (<FormItem><FormLabel>From Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
               </div>
