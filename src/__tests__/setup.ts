@@ -111,6 +111,17 @@ if (!navigator.clipboard) {
   })
 }
 
+// Mock hasPointerCapture for Radix UI components in JSDOM
+if (typeof window !== 'undefined' && !window.HTMLElement.prototype.hasPointerCapture) {
+  window.HTMLElement.prototype.hasPointerCapture = vi.fn();
+  window.HTMLElement.prototype.releasePointerCapture = vi.fn();
+}
+
+// Mock scrollIntoView for Radix UI components in JSDOM
+if (typeof window !== 'undefined' && !window.Element.prototype.scrollIntoView) {
+  window.Element.prototype.scrollIntoView = vi.fn();
+}
+
 // Mock geolocation
 Object.defineProperty(navigator, 'geolocation', {
   value: {

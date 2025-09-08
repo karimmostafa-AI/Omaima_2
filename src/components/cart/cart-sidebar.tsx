@@ -113,6 +113,7 @@ export function CartSidebar() {
                             size="sm"
                             onClick={() => removeItem(item.id)}
                             className="h-auto p-1"
+                            aria-label="Remove item"
                           >
                             <X className="h-4 w-4" />
                           </Button>
@@ -127,6 +128,7 @@ export function CartSidebar() {
                               onClick={() => updateQuantity(item.id, Math.max(0, item.quantity - 1))}
                               disabled={item.quantity <= 1}
                               className="h-6 w-6 p-0"
+                              aria-label="Decrease quantity"
                             >
                               <Minus className="h-3 w-3" />
                             </Button>
@@ -141,6 +143,7 @@ export function CartSidebar() {
                               onClick={() => updateQuantity(item.id, item.quantity + 1)}
                               disabled={item.maxQuantity != null && item.maxQuantity > 0 && item.quantity >= item.maxQuantity}
                               className="h-6 w-6 p-0"
+                              aria-label="Increase quantity"
                             >
                               <Plus className="h-3 w-3" />
                             </Button>
