@@ -91,19 +91,6 @@ if (typeof window === 'undefined' && typeof process !== 'undefined' && process.o
 // =============================================
 
 /**
- * Get authenticated user from Supabase session
- */
-export async function getAuthenticatedUser() {
-  const { data: { user }, error } = await supabase.auth.getUser()
-  
-  if (error || !user) {
-    return null
-  }
-  
-  return user
-}
-
-/**
  * Create or get Supabase client for server-side operations
  */
 export function createServerClient(req?: Request) {

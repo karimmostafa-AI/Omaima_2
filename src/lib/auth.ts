@@ -1,29 +1,10 @@
-// Temporary simplified auth service for development
-// TODO: Integrate with Supabase database when configured
-
 import { createClient } from '@/lib/supabase-middleware'
 import { User } from '@/types'
-import { NextRequest } from 'next/server'
-
-export type AuthUser = {
-  id: string;
-  email: string;
-  firstName?: string;
-  lastName?: string;
-  role: 'CUSTOMER' | 'STAFF' | 'ADMIN';
-  isActive: boolean;
-  emailVerified: boolean;
-  avatar?: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-  lastLoginAt?: Date | null;
-};
 
 /**
- * Get current authenticated user from Supabase
- * This is a simplified version for development
+ * Get current authenticated user from Supabase and maps it to the unified User type.
  */
-export async function getCurrentUser(): Promise<AuthUser | null> {
+export async function getCurrentUser(): Promise<User | null> {
   try {
     const supabase = createClient();
     const { data: { user }, error } = await supabase.auth.getUser();
@@ -32,19 +13,21 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
       return null;
     }
 
-    // Return a simplified user object for development
+    // Map Supabase user to our unified User type
     return {
       id: user.id,
       email: user.email || '',
       firstName: user.user_metadata?.first_name || '',
       lastName: user.user_metadata?.last_name || '',
       role: user.user_metadata?.role || 'CUSTOMER',
-      isActive: true,
+      isActive: true, // Assuming active if logged in; adjust if a db field exists
       emailVerified: !!user.email_confirmed_at,
-      avatar: user.user_metadata?.avatar_url || null,
+      avatarUrl: user.user_metadata?.avatar_url || null,
       createdAt: new Date(user.created_at),
       updatedAt: new Date(user.updated_at || user.created_at),
       lastLoginAt: user.last_sign_in_at ? new Date(user.last_sign_in_at) : null,
+      phone: user.phone,
+      // preferences: user.user_metadata?.preferences, // TODO: Add preferences to user_metadata
     };
   } catch (error) {
     console.error('Error getting current user:', error);
@@ -52,86 +35,44 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
   }
 }
 
-/**
- * Get authenticated user from middleware/API routes
- */
-export async function getAuthenticatedUser(request?: NextRequest): Promise<User | null> {
-  try {
-    const user = await getCurrentUser();
-    if (!user) return null;
+// --- CONSOLIDATED ROLE-BASED ACCESS CONTROL ---
 
-    // Convert to legacy User type for compatibility
-    return {
-      id: user.id,
-      email: user.email,
-      first_name: user.firstName || undefined,
-      last_name: user.lastName || undefined,
-      phone: undefined,
-      avatar_url: user.avatar || undefined,
-      role: user.role.toLowerCase() as 'customer' | 'admin' | 'staff',
-      email_verified: user.emailVerified,
-      created_at: user.createdAt.toISOString(),
-      updated_at: user.updatedAt.toISOString(),
-      last_login: user.lastLoginAt?.toISOString(),
-      is_active: user.isActive,
-      preferences: {
-        currency: 'USD',
-        language: 'en',
-        notifications: {
-          email: true,
-          sms: false,
-          marketing: false
-        },
-        theme: 'light' as const
-      }
-    };
-  } catch (error) {
-    console.error('Error getting authenticated user:', error);
-    return null;
-  }
-}
-
-// Role-based access control
-export function requireRole(user: User | null, requiredRole: 'customer' | 'staff' | 'admin'): boolean {
-  if (!user) return false
-  
-  const roleHierarchy = {
-    customer: 1,
-    staff: 2,
-    admin: 3
-  }
-  
-  return roleHierarchy[user.role] >= roleHierarchy[requiredRole]
-}
-
-export function requireAdmin(user: User | null): boolean {
-  return user?.role === 'admin'
-}
-
-export function requireStaffOrAdmin(user: User | null): boolean {
-  return user?.role === 'staff' || user?.role === 'admin'
-}
+const roleHierarchy = {
+  CUSTOMER: 1,
+  STAFF: 2,
+  ADMIN: 3,
+};
 
 /**
- * Check if user has specific role
+ * The single source of truth for checking user roles with hierarchy.
+ * An ADMIN can do everything a STAFF can, and a STAFF can do everything a CUSTOMER can.
+ * @param user The authenticated user object.
+ * @param requiredRole The minimum role required for the action.
+ * @returns {boolean} True if the user has the required role or higher.
  */
-export function hasRole(user: AuthUser | null, allowedRoles: string[]): boolean {
+export function hasRequiredRole(user: User | null, requiredRole: keyof typeof roleHierarchy): boolean {
   if (!user) return false;
-  return allowedRoles.includes(user.role);
+  const userLevel = roleHierarchy[user.role] || 0;
+  const requiredLevel = roleHierarchy[requiredRole];
+  return userLevel >= requiredLevel;
 }
 
 /**
- * Check if user is admin
+ * Checks if a user is an administrator.
+ * @param user The authenticated user object.
+ * @returns {boolean} True if the user is an ADMIN.
  */
-export function isAdmin(user: AuthUser | null): boolean {
-  return hasRole(user, ['ADMIN']);
+export function isAdmin(user: User | null): boolean {
+  return hasRequiredRole(user, 'ADMIN');
 }
 
 /**
- * Check if user is staff or admin
+ * Checks if a user is staff or an administrator.
+ * @param user The authenticated user object.
+ * @returns {boolean} True if the user is STAFF or ADMIN.
  */
-export function isStaff(user: AuthUser | null): boolean {
-  return hasRole(user, ['STAFF', 'ADMIN']);
+export function isStaff(user: User | null): boolean {
+  return hasRequiredRole(user, 'STAFF');
 }
 
 /**
@@ -145,7 +86,7 @@ export async function signOut(): Promise<void> {
 /**
  * Get user's full name
  */
-export function getUserFullName(user: AuthUser | null): string {
+export function getUserFullName(user: User | null): string {
   if (!user) return 'Anonymous';
   return `${user.firstName} ${user.lastName}`.trim() || user.email;
 }
@@ -153,7 +94,7 @@ export function getUserFullName(user: AuthUser | null): string {
 /**
  * Get user's initials for avatar
  */
-export function getUserInitials(user: AuthUser | null): string {
+export function getUserInitials(user: User | null): string {
   if (!user) return '?';
   
   const firstInitial = user.firstName?.[0]?.toUpperCase() || '';
@@ -169,21 +110,21 @@ export function getUserInitials(user: AuthUser | null): string {
 /**
  * Check if user can access admin features
  */
-export function canAccessAdmin(user: AuthUser | null): boolean {
+export function canAccessAdmin(user: User | null): boolean {
   return isAdmin(user);
 }
 
 /**
  * Check if user can access staff features
  */
-export function canAccessStaff(user: AuthUser | null): boolean {
+export function canAccessStaff(user: User | null): boolean {
   return isStaff(user);
 }
 
 /**
  * Get appropriate dashboard URL for user role
  */
-export function getDashboardUrl(user: AuthUser | null): string {
+export function getDashboardUrl(user: User | null): string {
   if (!user) return '/auth/login';
   
   switch (user.role) {

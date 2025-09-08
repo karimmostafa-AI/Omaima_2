@@ -427,9 +427,26 @@ describe('AuthStore', () => {
         })
       })
 
+      // Test the new hierarchical logic
       expect(result.current.hasRole('ADMIN')).toBe(true)
-      expect(result.current.hasRole('CUSTOMER')).toBe(false)
+      expect(result.current.hasRole('STAFF')).toBe(true)
+      expect(result.current.hasRole('CUSTOMER')).toBe(true)
       expect(result.current.isAdmin()).toBe(true)
+
+      // Test a non-admin user
+      act(() => {
+        result.current.setUser({
+          id: 'user-456',
+          email: 'customer@example.com',
+          role: 'CUSTOMER',
+          emailVerified: true
+        })
+      })
+
+      expect(result.current.hasRole('ADMIN')).toBe(false)
+      expect(result.current.hasRole('STAFF')).toBe(false)
+      expect(result.current.hasRole('CUSTOMER')).toBe(true)
+      expect(result.current.isAdmin()).toBe(false)
     })
 
     it('should get user full name', () => {
