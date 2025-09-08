@@ -18,16 +18,16 @@ export interface SecurityEvent {
 export interface User {
   id: string;
   email: string;
-  first_name?: string;
-  last_name?: string;
+  firstName?: string;
+  lastName?: string;
+  role: 'CUSTOMER' | 'STAFF' | 'ADMIN';
+  isActive: boolean;
+  emailVerified: boolean;
+  avatarUrl?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  lastLoginAt?: Date | null;
   phone?: string;
-  avatar_url?: string;
-  role: 'customer' | 'admin' | 'staff';
-  email_verified: boolean;
-  created_at: string;
-  updated_at: string;
-  last_login?: string;
-  is_active: boolean;
   preferences?: UserPreferences;
 }
 

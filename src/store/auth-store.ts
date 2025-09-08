@@ -1,7 +1,8 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { supabase } from '@/lib/supabase'
-import type { User, Session } from '@supabase/supabase-js'
+import { hasRequiredRole } from '@/lib/auth'
+import type { Session } from '@supabase/supabase-js'
 import type { Provider } from '@supabase/supabase-js'
 import type { SecurityEvent } from '@/types'
 
@@ -779,9 +780,10 @@ export const useAuthStore = create<AuthStore>()(
       },
 
       // Utility Functions
-      hasRole: (role: string) => {
+      hasRole: (role: 'CUSTOMER' | 'STAFF' | 'ADMIN') => {
         const user = get().user
-        return user?.role === role
+        // This now correctly uses the hierarchical check
+        return hasRequiredRole(user, role)
       },
 
       hasPermission: (permission: string) => {
@@ -790,7 +792,8 @@ export const useAuthStore = create<AuthStore>()(
       },
 
       isAdmin: () => {
-        return get().hasRole('ADMIN')
+        const user = get().user
+        return hasRequiredRole(user, 'ADMIN')
       },
 
       getFullName: () => {

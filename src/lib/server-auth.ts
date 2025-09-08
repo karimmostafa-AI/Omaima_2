@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { AuthUser } from '@/lib/auth';
+import { AuthUser, hasRequiredRole as hasRequiredRoleClient } from '@/lib/auth';
 
 /**
  * Get the authenticated user from server-side context
@@ -56,12 +56,12 @@ export async function requireAuth(redirectUrl?: string): Promise<AuthUser> {
  * Require specific role - redirects if user doesn't have required role
  */
 export async function requireRole(
-  allowedRoles: string[],
+  requiredRole: 'CUSTOMER' | 'STAFF' | 'ADMIN',
   redirectUrl?: string
 ): Promise<AuthUser> {
   const user = await requireAuth(redirectUrl);
   
-  if (!allowedRoles.includes(user.role)) {
+  if (!hasRequiredRoleClient(user, requiredRole)) {
     // Redirect to appropriate dashboard based on user role
     switch (user.role) {
       case 'ADMIN':
@@ -85,50 +85,53 @@ export async function requireRole(
  * Require customer role (CUSTOMER, STAFF, or ADMIN)
  */
 export async function requireCustomerAuth(redirectUrl?: string): Promise<AuthUser> {
-  return requireRole(['CUSTOMER', 'STAFF', 'ADMIN'], redirectUrl);
+  return requireRole('CUSTOMER', redirectUrl);
 }
 
 /**
  * Require staff role (STAFF or ADMIN)
  */
 export async function requireStaffAuth(redirectUrl?: string): Promise<AuthUser> {
-  return requireRole(['STAFF', 'ADMIN'], redirectUrl);
+  return requireRole('STAFF', redirectUrl);
 }
 
 /**
  * Require admin role (ADMIN only)
  */
 export async function requireAdminAuth(redirectUrl?: string): Promise<AuthUser> {
-  return requireRole(['ADMIN'], redirectUrl);
+  return requireRole('ADMIN', redirectUrl);
 }
 
 /**
  * Check if user has specific role without redirecting
  */
-export async function hasRole(allowedRoles: string[]): Promise<boolean> {
+export async function hasRole(requiredRole: 'CUSTOMER' | 'STAFF' | 'ADMIN'): Promise<boolean> {
   const user = await getServerUser();
-  return user ? allowedRoles.includes(user.role) : false;
+  return hasRequiredRoleClient(user, requiredRole);
 }
 
 /**
  * Check if current user is admin
  */
 export async function isAdmin(): Promise<boolean> {
-  return hasRole(['ADMIN']);
+  const user = await getServerUser();
+  return hasRequiredRoleClient(user, 'ADMIN');
 }
 
 /**
  * Check if current user is staff or admin
  */
 export async function isStaff(): Promise<boolean> {
-  return hasRole(['STAFF', 'ADMIN']);
+  const user = await getServerUser();
+  return hasRequiredRoleClient(user, 'STAFF');
 }
 
 /**
  * Check if current user is customer, staff, or admin
  */
 export async function isCustomer(): Promise<boolean> {
-  return hasRole(['CUSTOMER', 'STAFF', 'ADMIN']);
+  const user = await getServerUser();
+  return hasRequiredRoleClient(user, 'CUSTOMER');
 }
 
 /**
