@@ -13,8 +13,8 @@ if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
 export const connectDB = async () => {
   try {
     await prisma.$connect()
-    console.log('✅ Database connected successfully')
   } catch (error) {
+    // In production, use a proper logging service
     console.error('❌ Database connection failed:', error)
     throw error
   }
@@ -23,8 +23,8 @@ export const connectDB = async () => {
 export const disconnectDB = async () => {
   try {
     await prisma.$disconnect()
-    console.log('✅ Database disconnected successfully')
   } catch (error) {
+    // In production, use a proper logging service
     console.error('❌ Database disconnection failed:', error)
     throw error
   }
@@ -36,7 +36,6 @@ export const checkDBHealth = async () => {
     await prisma.$queryRaw`SELECT 1`
     return { status: 'healthy', timestamp: new Date().toISOString() }
   } catch (error) {
-    console.error('Database health check failed:', error)
     const errorMessage = error instanceof Error ? error.message : String(error)
     return { status: 'unhealthy', error: errorMessage, timestamp: new Date().toISOString() }
   }

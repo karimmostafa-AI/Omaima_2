@@ -35,12 +35,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log('Admin user found:', {
-      id: adminUser.id,
-      email: adminUser.email,
-      email_confirmed_at: adminUser.email_confirmed_at,
-      user_metadata: adminUser.user_metadata
-    })
 
     // Confirm email if not already confirmed
     if (!adminUser.email_confirmed_at) {

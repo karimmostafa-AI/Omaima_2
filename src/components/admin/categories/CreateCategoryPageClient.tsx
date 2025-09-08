@@ -21,7 +21,6 @@ const CreateCategoryPageClient = () => {
     startTransition(async () => {
       // In a real app, you would handle file uploads properly, e.g., to a cloud storage service.
       // For this mock implementation, we'll just log the data.
-      console.log('Creating category with data:', data);
 
       // We'll simulate an API call
       const response = await fetch('/api/admin/categories', {
@@ -35,7 +34,6 @@ const CreateCategoryPageClient = () => {
         router.refresh(); // Refresh the page to show the new category
       } else {
         // Handle error
-        console.error('Failed to create category');
       }
     });
   };

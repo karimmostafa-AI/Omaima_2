@@ -123,7 +123,7 @@ export async function DELETE(
 
   try {
     await ProductService.deleteProduct(params.id);
-    return NextResponse.json({ success: true, message: 'Product deleted' });
+    return new NextResponse(null, { status: 204 });
   } catch (error) {
     console.error('Error deleting product:', error);
      // Handle cases where the product to delete doesn't exist

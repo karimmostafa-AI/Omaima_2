@@ -53,4 +53,40 @@ test.describe('Admin Authentication and Access', () => {
     await expect(page).toHaveURL(/.*\/admin/);
     await expect(page.locator('h1')).toHaveText('Dashboard');
   });
+
+  test('should allow an admin to create a new product', async ({ page }) => {
+    // Log in first
+    await page.goto('/auth/login');
+    await page.locator('input[name="email"]').fill('admin@omaima.com');
+    await page.locator('input[name="password"]').fill('admin123');
+    await page.locator('button:has-text("Login")').click();
+    await expect(page).toHaveURL(/.*\/admin/);
+
+    // Navigate to products page
+    await page.locator('a:has-text("Products")').click();
+    await expect(page).toHaveURL(/.*\/admin\/products/);
+
+    // Click "Add Product"
+    await page.locator('button:has-text("Add Product")').click();
+
+    // Fill out the form in the modal
+    const modal = page.locator('[role="dialog"]');
+    await expect(modal).toBeVisible();
+
+    const uniqueSku = `TEST-SKU-${Date.now()}`;
+    await modal.locator('input[name="name"]').fill('E2E Test Product');
+    await modal.locator('textarea[name="description"]').fill('This is a product created by an E2E test.');
+    await modal.locator('input[name="sku"]').fill(uniqueSku);
+    await modal.locator('input[name="price"]').fill('199.99');
+
+    await modal.locator('button[role="combobox"]').click();
+    await page.locator('div[role="option"]:has-text("Blazers")').click();
+
+    // Create the product
+    await modal.locator('button:has-text("Create Product")').click();
+
+    // Modal should close, and the new product should be in the table
+    await expect(modal).not.toBeVisible();
+    await expect(page.locator(`text=${uniqueSku}`)).toBeVisible();
+  });
 });
