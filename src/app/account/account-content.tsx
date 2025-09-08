@@ -148,7 +148,7 @@ export default function AccountContent({ user }: AccountContentProps) {
             <CardHeader>
               <CardTitle>Your Saved Designs</CardTitle>
               <CardDescription>
-                Custom suit designs you've created and saved for later
+                Custom suit designs you&apos;ve created and saved for later
               </CardDescription>
             </CardHeader>
             <CardContent>

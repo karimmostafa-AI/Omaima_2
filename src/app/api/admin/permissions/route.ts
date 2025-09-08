@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { RoleService } from '@/lib/services/role-service';
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
     try {
         const permissions = await RoleService.getPermissions();
 

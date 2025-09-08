@@ -235,18 +235,24 @@ export async function middleware(request: NextRequest) {
     // Create response with security headers
     const response = NextResponse.next();
     
-    // Add security headers
-    response.headers.set('x-user-id', session.user.id);
-    response.headers.set('x-user-role', user.role);
-    response.headers.set('x-user-email', session.user.email || '');
-    response.headers.set('x-security-level', routeConfig.requiresMFA ? 'enhanced' : 'basic');
-    response.headers.set('x-client-ip', clientIP);
-    
     // Security headers for all responses
     response.headers.set('X-Frame-Options', 'DENY');
     response.headers.set('X-Content-Type-Options', 'nosniff');
     response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
     response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+    const csp = `
+      default-src 'self';
+      script-src 'self' 'unsafe-eval' 'unsafe-inline';
+      style-src 'self' 'unsafe-inline';
+      img-src 'self' data:;
+      font-src 'self';
+      object-src 'none';
+      base-uri 'self';
+      form-action 'self';
+      frame-ancestors 'none';
+      upgrade-insecure-requests;
+    `.replace(/\s{2,}/g, ' ').trim();
+    response.headers.set('Content-Security-Policy', csp);
     
     return response;
 
