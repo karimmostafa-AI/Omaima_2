@@ -30,6 +30,8 @@ import {
   FileText,
   Crown,
   Zap,
+  Share2,
+  Mail,
 } from 'lucide-react'
 
 interface AdminSidebarProps {
@@ -174,6 +176,22 @@ const menuItems: MenuItem[] = [
     ],
   },
   {
+    title: 'Third-Party Services',
+    icon: Share2,
+    children: [
+      {
+        title: 'Payment Gateways',
+        href: '/admin/settings/payment',
+        icon: CreditCard,
+      },
+      {
+        title: 'Mail Configuration',
+        href: '/admin/settings/mail',
+        icon: Mail,
+      },
+    ],
+  },
+  {
     title: 'System Settings',
     icon: Settings,
     children: [
@@ -181,11 +199,6 @@ const menuItems: MenuItem[] = [
         title: 'General Settings',
         href: '/admin/settings/general',
         icon: Settings,
-      },
-      {
-        title: 'Payment Gateway',
-        href: '/admin/settings/payment',
-        icon: CreditCard,
       },
       {
         title: 'Delivery Charges',
