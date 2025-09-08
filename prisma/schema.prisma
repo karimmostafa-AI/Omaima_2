@@ -13,23 +13,27 @@ datasource db {
 
 // Temporary User model for relation purposes
 model User {
-  id    String @id @default(cuid())
-  roles Role[] @relation("ModelHasRoles")
+  id            String          @id @default(cuid())
+  roles         Role[]          @relation("ModelHasRoles")
+  ModelHasRoles ModelHasRoles[]
 }
 
 model Role {
-  id          String       @id @default(cuid())
-  name        String       @unique
-  permissions Permission[] @relation("RolePermissions")
-  users       User[]       @relation("ModelHasRoles")
+  id              String            @id @default(cuid())
+  name            String            @unique
+  permissions     Permission[]      @relation("RolePermissions")
+  users           User[]            @relation("ModelHasRoles")
+  RolePermissions RolePermissions[]
+  ModelHasRoles   ModelHasRoles[]
 
   @@map("roles")
 }
 
 model Permission {
-  id    String @id @default(cuid())
-  name  String @unique
-  roles Role[] @relation("RolePermissions")
+  id              String            @id @default(cuid())
+  name            String            @unique
+  roles           Role[]            @relation("RolePermissions")
+  RolePermissions RolePermissions[]
 
   @@map("permissions")
 }

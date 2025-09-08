@@ -233,13 +233,19 @@ describe('Middleware', () => {
       });
     });
 
-    it('should allow access to admin routes (admin routes are public by default)', async () => {
+    it('should redirect unauthenticated users from /admin to login', async () => {
+      // Unauthenticated users are now redirected from /admin
+      mockSupabaseClient.auth.getSession.mockResolvedValue({
+        data: { session: null },
+        error: null
+      });
+
       const request = createMockRequest('https://example.com/admin');
       const response = await middleware(request);
       
-      // Admin routes without /admin/protected are public
-      expect(response.status).toBe(200);
-      expect(response.headers.get('x-middleware-next')).toBe('1');
+      // Expect a redirect to the login page
+      expect(response.status).toBe(307);
+      expect(response.headers.get('location')).toContain('/auth/login');
     });
 
     it('should deny access to staff routes for customer users', async () => {
@@ -338,13 +344,6 @@ describe('Middleware', () => {
       expect(response.headers.get('x-rate-limit-remaining')).toBe('5');
     });
 
-    it('should allow general admin routes (not enhanced security)', async () => {
-      const request = createMockRequest('https://example.com/admin');
-      const response = await middleware(request);
-      
-      // General admin routes are public
-      expect(response.status).toBe(200);
-    });
   });
 
   describe('Staff Routes', () => {
