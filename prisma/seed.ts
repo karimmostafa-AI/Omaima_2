@@ -493,6 +493,34 @@ async function main() {
 
   console.log('⚙️ Created system settings')
 
+  // Seed all permissions
+  const { ALL_PERMISSIONS } = await import('../src/lib/permissions-list')
+  for (const permissionName of ALL_PERMISSIONS) {
+    await prisma.permission.upsert({
+      where: { name: permissionName },
+      update: {},
+      create: { name: permissionName },
+    });
+  }
+  console.log('🔐 Permissions seeded.');
+
+  // Create a root role and assign all permissions
+  const rootRole = await prisma.role.upsert({
+    where: { name: 'root' },
+    update: {},
+    create: { name: 'root' },
+  });
+  const allPermissions = await prisma.permission.findMany();
+  await prisma.rolePermissions.deleteMany({ where: { roleId: rootRole.id } });
+  await prisma.rolePermissions.createMany({
+    data: allPermissions.map(permission => ({
+      roleId: rootRole.id,
+      permissionId: permission.id,
+    })),
+  });
+  console.log('👑 Root role created and all permissions assigned.');
+
+
   console.log('✅ Database seeding completed successfully!')
 }
 
