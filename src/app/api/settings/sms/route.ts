@@ -1,16 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PaymentGatewayService } from '@/lib/services/payment-gateway-service';
+import { SmsGatewayService } from '@/lib/services/sms-gateway-service';
 
-// GET handler to retrieve all payment gateway settings
+// GET handler to retrieve all SMS gateway settings
 export async function GET(request: NextRequest) {
   try {
-    const configs = await PaymentGatewayService.getGatewayConfigs();
+    const configs = await SmsGatewayService.getGatewayConfigs();
 
     const safeConfigs = JSON.parse(JSON.stringify(configs));
     const sensitiveKeys = {
-        stripe: ['stripe_secret_key'],
-        paypal: ['paypal_client_secret'],
-        razorpay: ['razorpay_key_secret'],
+        twilio: ['sid', 'token'],
+        vonage: ['api_key', 'api_secret'],
     };
     for (const gw in safeConfigs) {
         if(sensitiveKeys[gw]) {
@@ -24,22 +23,22 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(safeConfigs || {});
   } catch (error) {
-    console.error('Error fetching payment gateway configs:', error);
-    return NextResponse.json({ error: 'Failed to fetch payment gateway configs' }, { status: 500 });
+    console.error('Error fetching SMS gateway configs:', error);
+    return NextResponse.json({ error: 'Failed to fetch SMS gateway configs' }, { status: 500 });
   }
 }
 
-// POST handler to save all payment gateway settings
+// POST handler to save all SMS gateway settings
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    const currentConfigs = await PaymentGatewayService.getGatewayConfigs();
+    const currentConfigs = await SmsGatewayService.getGatewayConfigs();
     const updatedConfigs = { ...currentConfigs, ...body };
 
     const sensitiveKeys = {
-        stripe: ['stripe_secret_key'],
-        paypal: ['paypal_client_secret'],
+        twilio: ['sid', 'token'],
+        vonage: ['api_key', 'api_secret'],
     };
     for (const gw in updatedConfigs) {
         if(sensitiveKeys[gw]) {
@@ -53,10 +52,10 @@ export async function POST(request: NextRequest) {
         }
     }
 
-    await PaymentGatewayService.saveGatewayConfigs(updatedConfigs);
-    return NextResponse.json({ message: 'Payment gateway settings saved successfully' });
+    await SmsGatewayService.saveGatewayConfigs(updatedConfigs);
+    return NextResponse.json({ message: 'SMS gateway settings saved successfully' });
   } catch (error) {
-    console.error('Error saving payment gateway configs:', error);
+    console.error('Error saving SMS gateway configs:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

@@ -5,69 +5,54 @@ import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { useToast } from "@/components/ui/use-toast";
 
-interface GatewayConfig {
+interface ProviderConfig {
   enabled: boolean;
-  mode: 'sandbox' | 'live';
   [key: string]: any;
 }
-interface AllGatewayConfigs {
-  [gatewayName: string]: GatewayConfig;
+interface AllProviderConfigs {
+  [providerName: string]: ProviderConfig;
 }
 
-const availableGateways = {
-  stripe: {
-    title: 'Stripe',
+const availableProviders = {
+  google: {
+    title: 'Google',
     fields: [
-      { name: 'stripe_publishable_key', label: 'Publishable Key' },
-      { name: 'stripe_secret_key', label: 'Secret Key', type: 'password' },
+      { name: 'client_id', label: 'Client ID' },
+      { name: 'client_secret', label: 'Client Secret', type: 'password' },
     ],
   },
-  paypal: {
-    title: 'PayPal',
+  facebook: {
+    title: 'Facebook',
     fields: [
-      { name: 'paypal_client_id', label: 'Client ID' },
-      { name: 'paypal_client_secret', label: 'Client Secret', type: 'password' },
+      { name: 'client_id', label: 'App ID' },
+      { name: 'client_secret', label: 'App Secret', type: 'password' },
     ],
   },
-  cod: {
-    title: 'Cash on Delivery',
-    fields: [{ name: 'title', label: 'Title' }],
-  },
-  razorpay: {
-    title: 'Razorpay',
+  github: {
+    title: 'GitHub',
     fields: [
-      { name: 'razorpay_key_id', label: 'Key ID' },
-      { name: 'razorpay_key_secret', label: 'Key Secret', type: 'password' },
-    ],
-  },
-  bank_transfer: {
-    title: 'Bank Transfer',
-    fields: [
-        { name: 'title', label: 'Title' },
-        { name: 'bank_name', label: 'Bank Name' },
-        { name: 'account_number', label: 'Account Number' },
-        { name: 'routing_number', label: 'Routing Number' },
+      { name: 'client_id', label: 'Client ID' },
+      { name: 'client_secret', label: 'Client Secret', type: 'password' },
     ],
   },
 };
 
-export default function PaymentGatewayPage() {
+export default function SocialAuthPage() {
   const { toast } = useToast();
-  const [configs, setConfigs] = useState<AllGatewayConfigs>({});
+  const [configs, setConfigs] = useState<AllProviderConfigs>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [activeGateway, setActiveGateway] = useState<string | null>(null);
+  const [activeProvider, setActiveProvider] = useState<string | null>(null);
 
   const fetchConfigs = useCallback(async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('/api/settings/payment');
+      const response = await fetch('/api/settings/social');
       const data = await response.json();
       setConfigs(data);
     } catch (error) {
@@ -81,32 +66,31 @@ export default function PaymentGatewayPage() {
     fetchConfigs();
   }, [fetchConfigs]);
 
-  const saveAllConfigs = async (dataToSave: AllGatewayConfigs) => {
+  const saveAllConfigs = async (dataToSave: AllProviderConfigs) => {
       try {
-          const response = await fetch('/api/settings/payment', {
+          const response = await fetch('/api/settings/social', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(dataToSave)
           });
           if (!response.ok) throw new Error("Failed to save settings");
           toast({ title: "Success", description: "Settings saved." });
-          // Refetch configs to get the fresh state (without secrets)
           fetchConfigs();
       } catch (error) {
           toast({ title: "Error", description: "Could not save settings.", variant: "destructive" });
       }
   }
 
-  const handleToggle = async (gatewayName: string, enabled: boolean) => {
+  const handleToggle = async (providerName: string, enabled: boolean) => {
     const newConfigs = {
       ...configs,
-      [gatewayName]: { ...(configs[gatewayName] || { mode: 'sandbox' }), enabled },
+      [providerName]: { ...(configs[providerName] || {}), enabled },
     };
     await saveAllConfigs(newConfigs);
   };
 
-  const handleOpenModal = (gatewayName: string) => {
-      setActiveGateway(gatewayName);
+  const handleOpenModal = (providerName: string) => {
+      setActiveProvider(providerName);
       setIsModalOpen(true);
   }
 
@@ -114,15 +98,15 @@ export default function PaymentGatewayPage() {
     <div className="p-6 space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Payment Gateways</CardTitle>
-          <CardDescription>Configure and manage payment methods for your store.</CardDescription>
+          <CardTitle>Social Authentication</CardTitle>
+          <CardDescription>Enable and configure third-party login providers.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {Object.entries(availableGateways).map(([key, gw]) => (
+          {Object.entries(availableProviders).map(([key, provider]) => (
             <Card key={key}>
               <CardHeader className="flex flex-row items-center justify-between">
                 <div className="space-y-1">
-                    <CardTitle className="text-lg">{gw.title}</CardTitle>
+                    <CardTitle className="text-lg">{provider.title}</CardTitle>
                     <CardDescription>
                         {configs[key]?.enabled ? 'Enabled' : 'Disabled'}
                     </CardDescription>
@@ -140,15 +124,15 @@ export default function PaymentGatewayPage() {
         </CardContent>
       </Card>
 
-      {activeGateway && (
-        <GatewayConfigModal
+      {activeProvider && (
+        <ProviderConfigModal
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
-          gatewayKey={activeGateway}
-          gatewayInfo={availableGateways[activeGateway]}
-          initialData={configs[activeGateway] || { enabled: false, mode: 'sandbox' }}
+          providerKey={activeProvider}
+          providerInfo={availableProviders[activeProvider]}
+          initialData={configs[activeProvider] || { enabled: false }}
           onSave={async (data) => {
-              const newConfigs = {...configs, [activeGateway]: data };
+              const newConfigs = {...configs, [activeProvider]: data };
               await saveAllConfigs(newConfigs);
               setIsModalOpen(false);
           }}
@@ -158,16 +142,16 @@ export default function PaymentGatewayPage() {
   );
 }
 
-interface GatewayConfigModalProps {
+interface ProviderConfigModalProps {
     isOpen: boolean;
     onClose: () => void;
-    gatewayKey: string;
-    gatewayInfo: { title: string; fields: any[] };
-    initialData: GatewayConfig;
-    onSave: (data: GatewayConfig) => Promise<void>;
+    providerKey: string;
+    providerInfo: { title: string; fields: any[] };
+    initialData: ProviderConfig;
+    onSave: (data: ProviderConfig) => Promise<void>;
 }
 
-function GatewayConfigModal({ isOpen, onClose, gatewayInfo, initialData, onSave }: GatewayConfigModalProps) {
+function ProviderConfigModal({ isOpen, onClose, providerInfo, initialData, onSave }: ProviderConfigModalProps) {
     const form = useForm({ defaultValues: initialData });
 
     const handleFormSubmit = (data: any) => {
@@ -179,28 +163,11 @@ function GatewayConfigModal({ isOpen, onClose, gatewayInfo, initialData, onSave 
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Configure {gatewayInfo.title}</DialogTitle>
+                    <DialogTitle>Configure {providerInfo.title}</DialogTitle>
                 </DialogHeader>
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4">
-                         <FormField
-                            control={form.control}
-                            name="mode"
-                            render={({ field }) => (
-                                <FormItem>
-                                <FormLabel>Mode</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                    <FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl>
-                                    <SelectContent>
-                                        <SelectItem value="sandbox">Sandbox</SelectItem>
-                                        <SelectItem value="live">Live</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        {gatewayInfo.fields.map(f => (
+                        {providerInfo.fields.map(f => (
                              <FormField
                                 key={f.name}
                                 control={form.control}

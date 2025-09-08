@@ -1,29 +1,24 @@
 import { SettingsService } from './settings-service';
 import { EncryptionService } from './encryption-service';
 
-export interface GatewayConfig {
+export interface SmsGatewayConfig {
   enabled: boolean;
-  mode: 'sandbox' | 'live';
   [key: string]: any;
 }
 
-export interface AllGatewayConfigs {
-  [gatewayName: string]: GatewayConfig;
+export interface AllSmsGatewayConfigs {
+  [gatewayName: string]: SmsGatewayConfig;
 }
 
-const PAYMENT_GATEWAYS_KEY = 'payment_gateways_config';
+const SMS_GATEWAYS_KEY = 'sms_gateways_config';
 const SENSITIVE_KEYS: { [gatewayName: string]: string[] } = {
-  stripe: ['stripe_secret_key'],
-  paypal: ['paypal_client_secret'],
-  razorpay: ['razorpay_key_secret'],
+  twilio: ['sid', 'token'],
+  vonage: ['api_key', 'api_secret'],
 };
 
-export class PaymentGatewayService {
-  /**
-   * Get all payment gateway configurations, decrypting sensitive values.
-   */
-  static async getGatewayConfigs(): Promise<AllGatewayConfigs> {
-    const configs = await SettingsService.getSetting(PAYMENT_GATEWAYS_KEY) as AllGatewayConfigs | null;
+export class SmsGatewayService {
+  static async getGatewayConfigs(): Promise<AllSmsGatewayConfigs> {
+    const configs = await SettingsService.getSetting(SMS_GATEWAYS_KEY) as AllSmsGatewayConfigs | null;
     if (!configs) return {};
 
     for (const gatewayName in configs) {
@@ -37,10 +32,7 @@ export class PaymentGatewayService {
     return configs;
   }
 
-  /**
-   * Save all payment gateway configurations, encrypting sensitive values.
-   */
-  static async saveGatewayConfigs(data: AllGatewayConfigs): Promise<void> {
+  static async saveGatewayConfigs(data: AllSmsGatewayConfigs): Promise<void> {
     const configsToSave = JSON.parse(JSON.stringify(data));
 
     for (const gatewayName in configsToSave) {
@@ -52,6 +44,6 @@ export class PaymentGatewayService {
       }
     }
 
-    await SettingsService.updateSetting(PAYMENT_GATEWAYS_KEY, configsToSave);
+    await SettingsService.updateSetting(SMS_GATEWAYS_KEY, configsToSave);
   }
 }
