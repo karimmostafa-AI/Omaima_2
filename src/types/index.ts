@@ -276,6 +276,7 @@ export interface CustomizationTemplate {
   product?: Product;
   category: string;
   base_price: number;
+  estimated_delivery_days: number;
   estimated_fabric_yards: number;
   available_components: string[];
   default_configuration?: Partial<CustomGarmentConfig>;

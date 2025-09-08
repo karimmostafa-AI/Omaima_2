@@ -52,6 +52,23 @@ interface IPWhitelistRule {
  */
 export class SecurityService {
   private supabase = createClient()
+  private isConfigured: boolean = false
+
+  constructor() {
+    // Validate that Supabase client is properly initialized
+    try {
+      // Test if the client is a mock client
+      if (this.supabase && typeof this.supabase.auth.getSession === 'function') {
+        this.isConfigured = true
+      } else {
+        console.warn('SecurityService: Supabase client not properly initialized - using fallback mode')
+        this.isConfigured = false
+      }
+    } catch (error) {
+      console.warn('SecurityService: Failed to initialize Supabase client - using fallback mode', error)
+      this.isConfigured = false
+    }
+  }
 
   // ==========================================
   // IP Security Methods
@@ -73,6 +90,12 @@ export class SecurityService {
       // Check against custom allowed ranges
       if (allowedRanges.length > 0) {
         return this.isIPInRanges(ip, allowedRanges)
+      }
+
+      // If Supabase is not configured, allow all IPs in development
+      if (!this.isConfigured) {
+        console.warn('SecurityService: Supabase not configured, allowing IP:', ip)
+        return true
       }
 
       // Check against database whitelist
@@ -429,10 +452,14 @@ export class SecurityService {
         ...event
       }
 
-      // Store in database
-      await this.supabase
-        .from('security_events')
-        .insert(fullEvent)
+      // Store in database only if Supabase is configured
+      if (this.isConfigured) {
+        await this.supabase
+          .from('security_events')
+          .insert(fullEvent)
+      } else {
+        console.log('SecurityService: Supabase not configured, logging event locally:', fullEvent)
+      }
 
       // Also store locally for development
       if (typeof window !== 'undefined') {

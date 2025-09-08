@@ -12,6 +12,84 @@ interface PaginationProps {
   maxVisiblePages?: number
 }
 
+// Additional pagination components for compatibility
+interface PaginationItemProps extends React.ComponentProps<"button"> {
+  isActive?: boolean
+}
+
+export function PaginationItem({ isActive, className, ...props }: PaginationItemProps) {
+  return (
+    <Button
+      variant={isActive ? "default" : "outline"}
+      size="sm"
+      className={cn("h-9 w-9 p-0", className)}
+      {...props}
+    />
+  )
+}
+
+interface PaginationLinkProps extends React.ComponentProps<"button"> {
+  isActive?: boolean
+}
+
+export function PaginationLink({ isActive, className, ...props }: PaginationLinkProps) {
+  return (
+    <Button
+      variant={isActive ? "default" : "outline"}
+      size="sm"
+      className={cn("h-9 w-9 p-0", className)}
+      {...props}
+    />
+  )
+}
+
+export function PaginationContent({ className, ...props }: React.HTMLAttributes<HTMLElement>) {
+  return (
+    <div
+      className={cn("flex items-center gap-1", className)}
+      {...props}
+    />
+  )
+}
+
+export function PaginationEllipsis({ className, ...props }: React.ComponentProps<"span">) {
+  return (
+    <span
+      aria-hidden
+      className={cn("flex h-9 w-9 items-center justify-center", className)}
+      {...props}
+    >
+      <span className="text-muted-foreground">...</span>
+    </span>
+  )
+}
+
+export function PaginationPrevious({ className, ...props }: React.ComponentProps<"button">) {
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      className={cn("h-9 w-9 p-0", className)}
+      {...props}
+    >
+      <ChevronLeft className="h-4 w-4" />
+    </Button>
+  )
+}
+
+export function PaginationNext({ className, ...props }: React.ComponentProps<"button">) {
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      className={cn("h-9 w-9 p-0", className)}
+      {...props}
+    >
+      <ChevronRight className="h-4 w-4" />
+    </Button>
+  )
+}
+
 export function Pagination({
   currentPage,
   totalPages,

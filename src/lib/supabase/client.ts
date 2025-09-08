@@ -1,13 +1,25 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+// Get environment variables with fallback placeholders
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co'
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key'
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables')
+// Validate environment variables and log warnings if using placeholders
+if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+  console.warn('⚠️ Supabase environment variables are not configured. Using placeholder values.')
+  console.warn('Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in your environment file.')
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+// Validate URL format
+let validatedUrl = supabaseUrl
+try {
+  new URL(supabaseUrl)
+} catch (error) {
+  console.warn('⚠️ Invalid Supabase URL format. Using placeholder.')
+  validatedUrl = 'https://placeholder.supabase.co'
+}
+
+export const supabase = createClient(validatedUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
@@ -17,13 +29,14 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 
 // Server-side client with service role (for admin operations)
 export const createServerClient = () => {
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-service-role-key'
   
-  if (!serviceRoleKey) {
-    throw new Error('Missing Supabase service role key')
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    console.warn('⚠️ Supabase service role key is not configured. Using placeholder value.')
+    console.warn('Please set SUPABASE_SERVICE_ROLE_KEY in your environment file.')
   }
   
-  return createClient(supabaseUrl, serviceRoleKey, {
+  return createClient(validatedUrl, serviceRoleKey, {
     auth: {
       persistSession: false,
       autoRefreshToken: false

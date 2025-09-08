@@ -198,3 +198,6 @@ export function AdminLayout({ children, title, subtitle }: AdminLayoutProps) {
     </div>
   )
 }
+
+// Default export for backward compatibility
+export default AdminLayout

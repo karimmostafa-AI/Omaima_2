@@ -8,18 +8,39 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 
+// Add type definitions
+interface Permission {
+  id: string;
+  name: string;
+  description?: string;
+}
+
+interface RolePermission {
+  permission: {
+    id: string;
+  };
+}
+
+interface Role {
+  id: string;
+  name: string;
+  permissions: RolePermission[];
+}
+
+type PermissionsMap = Record<string, Permission[]>;
+
 export default function RolesPage() {
   const { toast } = useToast();
-  const [roles, setRoles] = useState([]);
-  const [selectedRole, setSelectedRole] = useState(null);
-  const [permissions, setPermissions] = useState({});
+  const [roles, setRoles] = useState<Role[]>([]);
+  const [selectedRole, setSelectedRole] = useState<Role | null>(null);
+  const [permissions, setPermissions] = useState<PermissionsMap>({});
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newRoleName, setNewRoleName] = useState('');
 
   const fetchRoles = useCallback(async () => {
     try {
       const response = await fetch('/api/admin/roles');
-      const data = await response.json();
+      const data: Role[] = await response.json();
       setRoles(data);
       if (data.length > 0 && !selectedRole) {
         setSelectedRole(data[0]);
@@ -32,7 +53,7 @@ export default function RolesPage() {
   const fetchPermissions = useCallback(async () => {
     try {
         const response = await fetch('/api/admin/permissions');
-        const data = await response.json();
+        const data: PermissionsMap = await response.json();
         setPermissions(data);
     } catch (error) {
         console.error("Failed to fetch permissions", error);
@@ -47,7 +68,7 @@ export default function RolesPage() {
   const handlePermissionToggle = (permissionId: string, granted: boolean) => {
     if (!selectedRole) return;
 
-    let updatedPermissionIds;
+    let updatedPermissionIds: string[];
     const currentPermissionIds = selectedRole.permissions.map(p => p.permission.id);
 
     if (granted) {
@@ -56,7 +77,7 @@ export default function RolesPage() {
       updatedPermissionIds = currentPermissionIds.filter(id => id !== permissionId);
     }
 
-    const newSelectedRole = {
+    const newSelectedRole: Role = {
         ...selectedRole,
         permissions: updatedPermissionIds.map(id => ({ permission: { id } }))
     };
@@ -130,14 +151,14 @@ export default function RolesPage() {
                     <div key={category}>
                       <h3 className="font-medium mb-2 capitalize">{category.replace('_', ' ')}</h3>
                       <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-                        {(perms as any[]).map((permission) => (
+                        {perms.map((permission) => (
                           <div key={permission.id} className="flex items-center space-x-2">
                             <Checkbox
                               id={`perm-${permission.id}`}
                               checked={selectedRole.permissions?.some(p => p.permission.id === permission.id)}
                               onCheckedChange={(checked) => handlePermissionToggle(permission.id, !!checked)}
                             />
-                            <label htmlFor={`perm-${permission.id}`} className="text-sm">{permission.name.split('.').pop().replace('_', ' ')}</label>
+                            <label htmlFor={`perm-${permission.id}`} className="text-sm">{permission.name.split('.').pop()?.replace('_', ' ')}</label>
                           </div>
                         ))}
                       </div>

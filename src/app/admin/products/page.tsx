@@ -12,10 +12,6 @@ import { formatPrice } from '@/lib/utils'
 import { ProductFormModal } from '@/components/forms/product-form'
 import { 
   Plus, 
-  CheckCircle,
-  XCircle,
-  AlertCircle,
-  Package,
   Loader2
 } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -37,6 +33,29 @@ async function deleteProduct(id: string): Promise<void> {
   if (!response.ok) {
     const errorData = await response.json();
     throw new Error(errorData.error || 'Failed to delete product');
+  }
+}
+
+// Helper function to convert Product to form data
+function productToFormData(product: Product) {
+  return {
+    name: product.name,
+    description: product.description || '',
+    shortDescription: product.short_description || '',
+    sku: product.sku || '',
+    price: product.price,
+    compareAtPrice: product.compare_at_price,
+    costPrice: product.cost_price,
+    category: product.categories?.[0]?.id || '',
+    brand: '',
+    tags: product.tags || [],
+    trackQuantity: product.track_quantity,
+    quantity: product.quantity || 0,
+    weight: product.weight,
+    requiresShipping: product.requires_shipping,
+    taxable: product.taxable,
+    status: product.status as 'active' | 'inactive' | 'draft',
+    images: product.images?.map(img => img.url) || []
   }
 }
 
@@ -140,13 +159,15 @@ export default function AdminProductsPage() {
       },
     },
     {
-      accessorKey: 'category',
+      accessorKey: 'categories',
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title="Category" />
       ),
-      cell: ({ row }) => (
-        <Badge variant="outline">{row.original.category?.name || 'N/A'}</Badge>
-      ),
+      cell: ({ row }) => {
+        const categories = row.original.categories
+        const categoryName = categories?.[0]?.name || 'N/A'
+        return <Badge variant="outline">{categoryName}</Badge>
+      },
     },
     {
       accessorKey: 'price',
@@ -155,7 +176,7 @@ export default function AdminProductsPage() {
       ),
       cell: ({ row }) => {
         const price = row.getValue('price') as number
-        const discountPrice = row.original.compareAtPrice
+        const discountPrice = row.original.compare_at_price
 
         return (
           <div className="space-y-1">
@@ -276,7 +297,7 @@ export default function AdminProductsPage() {
       <ProductFormModal
         open={isModalOpen}
         onOpenChange={setIsModalOpen}
-        initialData={selectedProduct}
+        initialData={selectedProduct ? productToFormData(selectedProduct) : undefined}
         mode={selectedProduct ? 'edit' : 'create'}
       />
     </AdminLayout>

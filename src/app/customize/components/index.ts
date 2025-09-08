@@ -1,0 +1,11 @@
+// Export all customizer components
+export { CustomizerSteps } from './customizer-steps'
+export { TemplateSelection } from './template-selection'
+export { FabricSelection } from './fabric-selection'
+export { ComponentSelection } from './component-selection'
+export { MeasurementsInput } from './measurements-input'
+export { PersonalizationOptions } from './personalization-options'
+export { DesignPreview } from './design-preview'
+export { DesignReview } from './design-review'
+export { PriceBreakdown } from './price-breakdown'
+export { SaveDesignModal } from './save-design-modal'

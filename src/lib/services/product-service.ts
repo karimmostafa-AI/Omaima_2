@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/supabase'
+import { prisma } from '@/lib/db'
 import type {
   Product,
   Category,
@@ -6,7 +6,59 @@ import type {
   ProductImage,
   ProductStatus,
   ProductType
-} from '@prisma/client'
+} from '.prisma/client'
+import type { Product as ProductInterface } from '@/types'
+
+// Transform Prisma product to Product interface
+function transformProductToInterface(product: any): ProductInterface {
+  return {
+    id: product.id,
+    name: product.name,
+    slug: product.slug,
+    description: product.description || undefined,
+    short_description: product.shortDescription || undefined,
+    type: product.type.toLowerCase() as 'standard' | 'customizable',
+    status: product.status.toLowerCase() as 'active' | 'inactive' | 'draft',
+    sku: product.sku || undefined,
+    price: product.price,
+    compare_at_price: product.compareAtPrice || undefined,
+    cost_price: product.costPrice || undefined,
+    track_quantity: product.trackQuantity,
+    quantity: product.quantity || undefined,
+    weight: product.weight || undefined,
+    requires_shipping: product.requiresShipping,
+    taxable: product.taxable,
+    tax_code: product.taxCode || undefined,
+    images: (product.images || []).map((img: any) => ({
+      id: img.id,
+      url: img.url,
+      alt_text: img.altText || undefined,
+      position: img.position,
+      width: img.width || undefined,
+      height: img.height || undefined
+    })),
+    categories: (product.categories || []).map((cat: any) => ({
+      id: cat.id,
+      name: cat.name,
+      slug: cat.slug,
+      description: cat.description || undefined,
+      image: cat.image || undefined,
+      parent_id: cat.parentId || undefined,
+      position: cat.position,
+      is_active: cat.isActive,
+      created_at: cat.createdAt.toISOString(),
+      updated_at: cat.updatedAt.toISOString()
+    })),
+    tags: product.tags ? product.tags.split(',').filter(Boolean) : [],
+    variants: undefined, // Handle variants separately if needed
+    seo: undefined, // Handle SEO separately if needed
+    created_at: product.createdAt.toISOString(),
+    updated_at: product.updatedAt.toISOString(),
+    customization_template_id: undefined, // Handle customization separately if needed
+    base_price: product.basePrice,
+    estimated_delivery_days: product.estimatedDeliveryDays
+  }
+}
 
 export interface ProductWithDetails extends Product {
   categories: Category[]
@@ -110,9 +162,9 @@ export class ProductService {
 
     if (search) {
       where.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } },
-        { tags: { has: search } }
+        { name: { contains: search } },
+        { description: { contains: search } },
+        { tags: { contains: search } }
       ]
     }
 
@@ -180,11 +232,12 @@ export class ProductService {
 
   // Create new product (Admin only)
   static async createProduct(data: ProductCreateData) {
-    const { categoryIds, images, variants, ...productData } = data
+    const { categoryIds, images, variants, tags, ...productData } = data
 
     return await prisma.product.create({
       data: {
         ...productData,
+        tags: tags.join(','), // Convert array to comma-separated string
         categories: {
           connect: categoryIds.map(id => ({ id }))
         },
@@ -205,12 +258,13 @@ export class ProductService {
 
   // Update product (Admin only)
   static async updateProduct(id: string, data: Partial<ProductCreateData>) {
-    const { categoryIds, images, variants, ...productData } = data
+    const { categoryIds, images, variants, tags, ...productData } = data
 
     return await prisma.product.update({
       where: { id },
       data: {
         ...productData,
+        tags: tags ? tags.join(',') : undefined, // Convert array to comma-separated string
         categories: categoryIds ? {
           set: categoryIds.map(id => ({ id }))
         } : undefined,
@@ -298,8 +352,8 @@ export class ProductService {
   }
 
   // Get featured products
-  static async getFeaturedProducts(limit: number = 8) {
-    return await prisma.product.findMany({
+  static async getFeaturedProducts(limit: number = 8): Promise<ProductInterface[]> {
+    const products = await prisma.product.findMany({
       where: {
         status: 'ACTIVE',
         // Add featured logic here - could be a featured flag or based on sales
@@ -314,6 +368,9 @@ export class ProductService {
       orderBy: { createdAt: 'desc' },
       take: limit
     })
+    
+    // Transform Prisma results to match Product interface
+    return products.map(transformProductToInterface)
   }
 
   // Search products
@@ -322,10 +379,10 @@ export class ProductService {
       where: {
         status: 'ACTIVE',
         OR: [
-          { name: { contains: query, mode: 'insensitive' } },
-          { description: { contains: query, mode: 'insensitive' } },
-          { shortDescription: { contains: query, mode: 'insensitive' } },
-          { tags: { has: query } }
+          { name: { contains: query } },
+          { description: { contains: query } },
+          { shortDescription: { contains: query } },
+          { tags: { contains: query } }
         ]
       },
       include: {

@@ -4,25 +4,26 @@ import ProductPageClient from './components/ProductPageClient';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface ProductsPageProps {
-  searchParams: {
+  searchParams: Promise<{
     category?: string;
     search?: string;
     sortBy?: 'name' | 'price' | 'createdAt';
     sortOrder?: 'asc' | 'desc';
     page?: string;
     limit?: string;
-  };
+  }>;
 }
 
 async function ProductsList({ searchParams }: ProductsPageProps) {
-  const page = parseInt(searchParams.page || '1', 10);
-  const limit = parseInt(searchParams.limit || '12', 10);
+  const resolvedSearchParams = await searchParams;
+  const page = parseInt(resolvedSearchParams.page || '1', 10);
+  const limit = parseInt(resolvedSearchParams.limit || '12', 10);
 
   const { products, pagination } = await ProductService.getProducts({
-    categoryId: searchParams.category,
-    search: searchParams.search,
-    sortBy: searchParams.sortBy,
-    sortOrder: searchParams.sortOrder,
+    categoryId: resolvedSearchParams.category,
+    search: resolvedSearchParams.search,
+    sortBy: resolvedSearchParams.sortBy,
+    sortOrder: resolvedSearchParams.sortOrder,
     page,
     limit,
   });

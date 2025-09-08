@@ -3,13 +3,13 @@
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Product } from '@/types';
+import { ProductWithDetails } from '@/lib/services/product-service';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Star } from 'lucide-react';
 
 interface ProductCardProps {
-  product: Product;
+  product: ProductWithDetails;
 }
 
 const ProductCard = ({ product }: ProductCardProps) => {

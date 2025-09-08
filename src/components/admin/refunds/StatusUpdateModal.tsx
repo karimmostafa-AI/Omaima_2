@@ -47,7 +47,7 @@ const StatusUpdateModal = ({ refund, isOpen, onClose, onUpdate, isUpdating }: St
         <div className="py-4 space-y-4">
           <div>
             <Label>Status</Label>
-            <RadioGroup value={status || ''} onValueChange={(value: RefundStatus) => setStatus(value)}>
+            <RadioGroup value={status || ''} onValueChange={(value: string) => setStatus(value as RefundStatus)}>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="pending" id="pending" />
                 <Label htmlFor="pending">Pending</Label>

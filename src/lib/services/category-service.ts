@@ -13,6 +13,15 @@ export const getCategories = async ({ page = 1, limit = 10 }: GetCategoriesParam
       skip: (page - 1) * limit,
       take: limit,
       orderBy: { position: 'asc' },
+      include: {
+        _count: {
+          select: {
+            products: {
+              where: { status: 'ACTIVE' }
+            }
+          }
+        }
+      }
     }),
     prisma.category.count(),
   ]);
@@ -37,7 +46,7 @@ export const createCategory = async (data: Omit<Category, 'id' | 'slug' | 'creat
 };
 
 export const updateCategory = async (id: string, data: Partial<Omit<Category, 'id' | 'slug' | 'created_at' | 'updated_at'>>) => {
-  const updateData = { ...data };
+  const updateData: any = { ...data };
   if (data.name) {
     updateData.slug = slugify(data.name);
   }

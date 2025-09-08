@@ -97,11 +97,11 @@ export function validateMeasurement(value: number, min: number = 10, max: number
 // =============================================
 
 export function calculateCustomizationPrice(config: Partial<CustomGarmentConfig>): PriceBreakdown {
-  let basePrice = 200 // Base suit price
+  const basePrice = 200 // Base suit price
   let fabricCost = 0
-  let componentModifiers: Record<string, number> = {}
-  let personalizationCosts: Record<string, number> = {}
-  let premiumUpcharges = 0
+  const componentModifiers: Record<string, number> = {}
+  const personalizationCosts: Record<string, number> = {}
+  const premiumUpcharges = 0
 
   // Calculate fabric cost
   if (config.components?.fabric) {

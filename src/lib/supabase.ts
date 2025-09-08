@@ -11,6 +11,7 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 // Check if we're in demo mode (missing or demo environment variables)
 const isDemoMode = !supabaseUrl || !supabaseAnonKey || 
                   supabaseUrl.includes('demo') || 
+                  supabaseUrl.includes('placeholder') ||
                   supabaseUrl === 'https://your-project.supabase.co'
 
 if (isDemoMode) {

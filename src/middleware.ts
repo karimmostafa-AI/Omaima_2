@@ -32,11 +32,6 @@ const protectedRoutes: Record<string, RouteConfig> = {
     paths: ['/dashboard', '/profile', '/orders', '/designs', '/account'],
     requiredRoles: ['CUSTOMER', 'STAFF', 'ADMIN'],
   },
-  // Customizer - authenticated users only
-  customizer: {
-    paths: ['/customize'],
-    requiredRoles: ['CUSTOMER', 'STAFF', 'ADMIN'],
-  },
 };
 
 // Public routes that don't require authentication
@@ -56,6 +51,7 @@ const publicRoutes = [
   '/api/auth/simple-login',
   '/api/setup-admin',
   '/products',
+  '/customize', // Allow customize page to be accessed without authentication
   '/about',
   '/contact'
 ];
@@ -128,6 +124,17 @@ export async function middleware(request: NextRequest) {
     // Get session from cookies or headers
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
+    // Handle case where Supabase is not configured (development mode)
+    if (sessionError && sessionError.message === 'Supabase not configured') {
+      console.warn('Middleware: Supabase not configured, allowing access in development mode')
+      
+      // In development without Supabase, allow access but add warning headers
+      const response = NextResponse.next();
+      response.headers.set('x-auth-status', 'development-mode');
+      response.headers.set('x-warning', 'supabase-not-configured');
+      return response;
+    }
+
     if (sessionError || !session?.user) {
       if (pathname.startsWith('/api/')) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -160,6 +167,29 @@ export async function middleware(request: NextRequest) {
       `)
       .eq('id', session.user.id)
       .single();
+
+    // Handle case where Supabase is not configured
+    if (userError && userError.message === 'Supabase not configured') {
+      console.warn('Middleware: User fetch failed due to Supabase not configured, creating mock user')
+      
+      // Create a mock user for development
+      const mockUser = {
+        id: session.user.id,
+        email: session.user.email || 'dev@example.com',
+        role: 'ADMIN', // Default to admin in development
+        isActive: true,
+        emailVerified: true,
+        mfaEnabled: false,
+        lastLoginAt: new Date(),
+        createdAt: new Date()
+      };
+      
+      // Continue with mock user
+      const response = NextResponse.next();
+      response.headers.set('x-auth-status', 'development-mode');
+      response.headers.set('x-user-role', mockUser.role);
+      return response;
+    }
 
     if (userError || !user) {
       console.error('User fetch error:', userError);

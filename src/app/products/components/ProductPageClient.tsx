@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { Product } from '@/types';
+import { ProductWithDetails } from '@/lib/services/product-service';
 import { MainLayout } from '@/components/layout/main-layout';
 import ProductGrid from './ProductGrid';
 import ProductFilters from '@/components/products/product-filters';
@@ -11,7 +11,7 @@ import FilterModal from './FilterModal';
 import { ProductSort } from '@/components/products/product-sort';
 
 interface ProductPageClientProps {
-  products: Product[];
+  products: ProductWithDetails[];
   total: number;
   page: number;
   limit: number;

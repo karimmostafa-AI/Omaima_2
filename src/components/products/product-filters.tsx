@@ -40,10 +40,15 @@ export function ProductFilters() {
       const response = await fetch('/api/categories')
       if (response.ok) {
         const data = await response.json()
-        setCategories(data)
+        // API returns { categories, total }, extract categories array
+        setCategories(data.categories || [])
+      } else {
+        console.error('Failed to fetch categories:', response.status)
+        setCategories([])
       }
     } catch (error) {
       console.error('Error fetching categories:', error)
+      setCategories([])
     } finally {
       setLoading(false)
     }
@@ -119,7 +124,7 @@ export function ProductFilters() {
             <div className="flex flex-wrap gap-2">
               {selectedCategory && (
                 <Badge variant="secondary" className="flex items-center gap-1">
-                  {categories.find(c => c.slug === selectedCategory)?.name || selectedCategory}
+                  {Array.isArray(categories) ? categories.find(c => c.slug === selectedCategory)?.name || selectedCategory : selectedCategory}
                   <button
                     onClick={() => updateFilters('category', null)}
                     className="ml-1 hover:bg-muted-foreground/20 rounded-full p-0.5"
@@ -161,7 +166,7 @@ export function ProductFilters() {
                 <div key={i} className="h-4 bg-muted rounded animate-pulse" />
               ))}
             </div>
-          ) : (
+          ) : Array.isArray(categories) && categories.length > 0 ? (
             categories.map((category) => (
               <div key={category.id} className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
@@ -180,10 +185,14 @@ export function ProductFilters() {
                   </Label>
                 </div>
                 <span className="text-xs text-muted-foreground">
-                  {category._count.products}
+                  {category._count?.products || 0}
                 </span>
               </div>
             ))
+          ) : (
+            <div className="text-sm text-muted-foreground">
+              No categories available
+            </div>
           )}
         </CardContent>
       </Card>
@@ -233,3 +242,6 @@ export function ProductFilters() {
     </div>
   )
 }
+
+// Default export for backward compatibility
+export default ProductFilters
