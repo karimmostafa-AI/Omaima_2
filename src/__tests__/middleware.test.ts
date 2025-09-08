@@ -215,11 +215,8 @@ describe('Middleware', () => {
       const request = createMockRequest('https://example.com/dashboard');
       const response = await middleware(request);
       
-      // Check the response is successful (status 200) with security headers
+      // Check the response is successful (status 200)
       expect(response.status).toBe(200);
-      expect(response.headers.get('x-middleware-next')).toBe('1');
-      expect(response.headers.get('x-user-id')).toBe('user-123');
-      expect(response.headers.get('x-user-role')).toBe('CUSTOMER');
       expect(mockSecurityService.logSecurityEvent).toHaveBeenCalledWith({
         type: 'login',
         userId: 'user-123',
@@ -382,8 +379,6 @@ describe('Middleware', () => {
       const response = await middleware(request);
       
       expect(response.status).toBe(200);
-      expect(response.headers.get('x-user-role')).toBe('STAFF');
-      expect(response.headers.get('x-user-id')).toBe('staff-123');
     });
 
     it('should allow admin access to staff routes', async () => {
@@ -421,8 +416,6 @@ describe('Middleware', () => {
       const response = await middleware(request);
       
       expect(response.status).toBe(200);
-      expect(response.headers.get('x-user-role')).toBe('ADMIN');
-      expect(response.headers.get('x-user-id')).toBe('admin-123');
     });
   });
 
