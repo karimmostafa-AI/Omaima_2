@@ -148,10 +148,15 @@ describe('AdminLoginForm Component', () => {
     }, { timeout: 3000 });
   });
 
-  it('should show loading state on submit', async () => {
+  it('should show loading state correctly', async () => {
     setupMockStore({ signIn: vi.fn(() => new Promise(() => {})), loading: true });
 
     render(<AdminLoginForm />);
+
+    // Wait for the async IP fetch to complete to avoid act() warnings
+    await waitFor(() => {
+      expect(screen.getByText(/IP: 127\.0\.0\.1/)).toBeInTheDocument();
+    });
     
     const button = screen.getByRole('button', { name: 'Verifying...' });
     expect(button).toBeDisabled();
