@@ -5,11 +5,12 @@ import { persist } from 'zustand/middleware';
 // For MVP, we only need basic auth state
 
 export interface AppState {
-  user: { id: string; email: string; role: 'ADMIN' | 'USER' } | null;
+  user: { id: string; email: string; name?: string; role: 'ADMIN' | 'CUSTOMER' } | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   authError: string | null;
   login: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string, name: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshAuth: () => Promise<void>;
 }
@@ -26,7 +27,7 @@ export const useAppStore = create<AppState>()(
         set({ isLoading: true, authError: null });
 
         try {
-          const response = await fetch('/api/auth/simple-login', {
+          const response = await fetch('/api/auth/login', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -48,6 +49,43 @@ export const useAppStore = create<AppState>()(
           });
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Login failed';
+          set({
+            isLoading: false,
+            authError: errorMessage,
+          });
+          throw error;
+        }
+      },
+
+      register: async (email: string, password: string, name: string) => {
+        set({ isLoading: true, authError: null });
+
+        try {
+          const response = await fetch('/api/auth/register', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ email, password, name }),
+          });
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            const errorMessage = Array.isArray(data.details) 
+              ? data.details.join(', ') 
+              : data.error || 'Registration failed';
+            throw new Error(errorMessage);
+          }
+
+          set({
+            user: data.user,
+            isAuthenticated: true,
+            isLoading: false,
+            authError: null,
+          });
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Registration failed';
           set({
             isLoading: false,
             authError: errorMessage,

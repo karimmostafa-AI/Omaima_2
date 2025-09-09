@@ -13,6 +13,7 @@ datasource db {
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
+  password  String?  // Optional for admin users (can use env variables)
   name      String?
   role      UserRole @default(CUSTOMER)
   createdAt DateTime @default(now())

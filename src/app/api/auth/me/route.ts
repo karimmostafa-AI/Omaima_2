@@ -1,72 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase';
-import { prisma } from '@/lib/db';
+import { getCurrentUser } from '@/lib/auth-utils';
+import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 
 const updateProfileSchema = z.object({
-  firstName: z.string().min(1, 'First name is required').optional(),
-  lastName: z.string().min(1, 'Last name is required').optional(),
-  phone: z.string().optional(),
-  address: z.object({
-    street: z.string().optional(),
-    city: z.string().optional(),
-    state: z.string().optional(),
-    zipCode: z.string().optional(),
-    country: z.string().optional(),
-  }).optional(),
-  preferences: z.object({
-    emailNotifications: z.boolean().optional(),
-    smsNotifications: z.boolean().optional(),
-    marketingEmails: z.boolean().optional(),
-  }).optional(),
+  name: z.string().min(1, 'Name is required').optional(),
 });
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createClient();
+    // Get current user from session
+    const user = await getCurrentUser();
 
-    // Get current user from Supabase session
-    const { data: { user }, error } = await supabase.auth.getUser();
-
-    if (error || !user) {
+    if (!user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
-    // Get user details from our database
+    // Get additional user details from database
     const userData = await prisma.user.findUnique({
       where: { id: user.id },
       select: {
         id: true,
         email: true,
-        firstName: true,
-        lastName: true,
-        phone: true,
+        name: true,
         role: true,
-        isActive: true,
-        emailVerified: true,
-        preferences: true,
         createdAt: true,
         updatedAt: true,
-        lastLogin: true,
-        // Include related data based on role
-        savedDesigns: {
-          select: {
-            id: true,
-            name: true,
-            createdAt: true,
-          },
-          orderBy: { createdAt: 'desc' },
-          take: 5, // Last 5 saved designs
-        },
         orders: {
           select: {
             id: true,
-            orderNumber: true,
             status: true,
-            totalAmount: true,
+            total: true,
             createdAt: true,
           },
           orderBy: { createdAt: 'desc' },
@@ -103,12 +70,10 @@ export async function PUT(request: NextRequest) {
     // Validate input data
     const validatedData = updateProfileSchema.parse(body);
 
-    const supabase = createClient();
+    // Get current user from session
+    const user = await getCurrentUser();
 
-    // Get current user from Supabase session
-    const { data: { user }, error } = await supabase.auth.getUser();
-
-    if (error || !user) {
+    if (!user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -125,25 +90,11 @@ export async function PUT(request: NextRequest) {
       select: {
         id: true,
         email: true,
-        firstName: true,
-        lastName: true,
-        phone: true,
+        name: true,
         role: true,
-        avatarUrl: true,
-        preferences: true,
         updatedAt: true,
       }
     });
-
-    // Update user metadata in Supabase if name changed
-    if (validatedData.firstName || validatedData.lastName) {
-      await supabase.auth.updateUser({
-        data: {
-          first_name: validatedData.firstName || updatedUser.firstName,
-          last_name: validatedData.lastName || updatedUser.lastName,
-        }
-      });
-    }
 
     return NextResponse.json({
       success: true,

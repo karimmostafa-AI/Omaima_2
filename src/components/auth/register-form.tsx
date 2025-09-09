@@ -14,20 +14,13 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
-import { useAuthStore } from '@/store/auth-store';
+import { useAppStore } from '@/store/app';
 
 const registerSchema = z.object({
-  firstName: z.string().min(1, 'First name is required'),
-  lastName: z.string().min(1, 'Last name is required'),
+  name: z.string().min(1, 'Name is required'),
   email: z.string().email('Please enter a valid email address'),
-  password: z.string()
-    .min(8, 'Password must be at least 8 characters')
-    .regex(
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-      'Password must contain at least one lowercase letter, one uppercase letter, and one number'
-    ),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
   confirmPassword: z.string(),
-  phone: z.string().optional(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],
@@ -44,39 +37,33 @@ export function RegisterForm() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [registrationComplete, setRegistrationComplete] = useState(false);
   
-  const { signUp, loading } = useAuthStore();
+  const { register, isLoading } = useAppStore();
   const [error, setError] = useState('');
 
   const form = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
-      firstName: '',
-      lastName: '',
+      name: '',
       email: '',
       password: '',
       confirmPassword: '',
-      phone: '',
     },
   });
 
   const onSubmit = async (data: RegisterFormData) => {
     setError('');
     
-    const result = await signUp(data.email, data.password, {
-      first_name: data.firstName,
-      last_name: data.lastName,
-      phone: data.phone || undefined,
-    });
-    
-    if (result.error) {
-      setError(result.error);
-    } else {
+    try {
+      await register(data.email, data.password, data.name);
       setRegistrationComplete(true);
       
-      // Redirect to login page after successful registration
+      // Redirect to dashboard after successful registration
       setTimeout(() => {
-        router.push(`/auth/login${redirectTo !== '/dashboard' ? `?redirect=${encodeURIComponent(redirectTo)}` : ''}`);
-      }, 3000);
+        router.push(redirectTo);
+      }, 2000);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Registration failed';
+      setError(errorMessage);
     }
   };
 
@@ -89,17 +76,17 @@ export function RegisterForm() {
               Registration Successful!
             </CardTitle>
             <CardDescription className="text-center">
-              Please check your email to verify your account
+              Welcome to Omaima! Your account has been created successfully.
             </CardDescription>
           </CardHeader>
 
           <CardContent>
             <div className="text-center">
               <p className="text-sm text-muted-foreground mb-4">
-                We've sent a verification link to your email address. Please click the link to activate your account.
+                You are now logged in and will be redirected to your dashboard.
               </p>
               <p className="text-sm text-muted-foreground">
-                You'll be redirected to the login page in a few seconds...
+                Redirecting in a few seconds...
               </p>
             </div>
           </CardContent>
@@ -137,38 +124,20 @@ export function RegisterForm() {
               </Alert>
             )}
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="firstName">First name</Label>
-                <Input
-                  id="firstName"
-                  placeholder="John"
-                  {...form.register('firstName')}
-                  disabled={loading}
-                  className={form.formState.errors.firstName ? 'border-red-500' : ''}
-                />
-                {form.formState.errors.firstName && (
-                  <p className="text-sm text-red-500">
-                    {form.formState.errors.firstName.message}
-                  </p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="lastName">Last name</Label>
-                <Input
-                  id="lastName"
-                  placeholder="Doe"
-                  {...form.register('lastName')}
-                  disabled={loading}
-                  className={form.formState.errors.lastName ? 'border-red-500' : ''}
-                />
-                {form.formState.errors.lastName && (
-                  <p className="text-sm text-red-500">
-                    {form.formState.errors.lastName.message}
-                  </p>
-                )}
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="name">Full name</Label>
+              <Input
+                id="name"
+                placeholder="John Doe"
+                {...form.register('name')}
+                disabled={isLoading}
+                className={form.formState.errors.name ? 'border-red-500' : ''}
+              />
+              {form.formState.errors.name && (
+                <p className="text-sm text-red-500">
+                  {form.formState.errors.name.message}
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -178,29 +147,12 @@ export function RegisterForm() {
                 type="email"
                 placeholder="john.doe@example.com"
                 {...form.register('email')}
-                disabled={loading}
+                disabled={isLoading}
                 className={form.formState.errors.email ? 'border-red-500' : ''}
               />
               {form.formState.errors.email && (
                 <p className="text-sm text-red-500">
                   {form.formState.errors.email.message}
-                </p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="phone">Phone number (optional)</Label>
-              <Input
-                id="phone"
-                type="tel"
-                placeholder="+1 (555) 123-4567"
-                {...form.register('phone')}
-                disabled={loading}
-                className={form.formState.errors.phone ? 'border-red-500' : ''}
-              />
-              {form.formState.errors.phone && (
-                <p className="text-sm text-red-500">
-                  {form.formState.errors.phone.message}
                 </p>
               )}
             </div>
@@ -213,7 +165,7 @@ export function RegisterForm() {
                   type={showPassword ? 'text' : 'password'}
                   placeholder="Create a strong password"
                   {...form.register('password')}
-                  disabled={loading}
+                  disabled={isLoading}
                   className={form.formState.errors.password ? 'border-red-500 pr-10' : 'pr-10'}
                 />
                 <Button
@@ -222,7 +174,7 @@ export function RegisterForm() {
                   size="sm"
                   className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                   onClick={() => setShowPassword(!showPassword)}
-                  disabled={loading}
+                  disabled={isLoading}
                 >
                   {showPassword ? (
                     <EyeOff className="h-4 w-4" />
@@ -246,7 +198,7 @@ export function RegisterForm() {
                   type={showConfirmPassword ? 'text' : 'password'}
                   placeholder="Confirm your password"
                   {...form.register('confirmPassword')}
-                  disabled={loading}
+                  disabled={isLoading}
                   className={form.formState.errors.confirmPassword ? 'border-red-500 pr-10' : 'pr-10'}
                 />
                 <Button
@@ -255,7 +207,7 @@ export function RegisterForm() {
                   size="sm"
                   className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  disabled={loading}
+                  disabled={isLoading}
                 >
                   {showConfirmPassword ? (
                     <EyeOff className="h-4 w-4" />
@@ -274,9 +226,9 @@ export function RegisterForm() {
             <Button 
               type="submit" 
               className="w-full" 
-              disabled={loading}
+              disabled={isLoading}
             >
-              {loading ? (
+              {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Creating account...

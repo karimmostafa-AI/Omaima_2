@@ -1,35 +1,58 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { validateAdminCredentials, createSession } from '@/lib/auth'
+import { authenticateUser, createSession, type LoginData } from '@/lib/auth-utils'
+import { z } from 'zod'
+
+const loginSchema = z.object({
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(1, 'Password is required')
+})
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, password } = await request.json()
+    const body = await request.json()
     
-    if (!email || !password) {
+    // Validate input
+    const validation = loginSchema.safeParse(body)
+    
+    if (!validation.success) {
       return NextResponse.json(
-        { error: 'Email and password are required' },
+        { 
+          error: 'Validation failed', 
+          details: validation.error.errors.map(err => err.message)
+        },
         { status: 400 }
       )
     }
+
+    const loginData: LoginData = validation.data
     
-    if (validateAdminCredentials(email, password)) {
-      const user = {
-        id: 'admin-user-id',
-        email: email,
-        role: 'ADMIN' as const
-      }
-      
-      await createSession(user)
-      
-      return NextResponse.json({ success: true, user })
-    } else {
+    // Authenticate user (admin or customer)
+    const result = await authenticateUser(loginData)
+    
+    if (!result.success) {
       return NextResponse.json(
-        { error: 'Invalid credentials' },
+        { error: result.error },
         { status: 401 }
       )
     }
+
+    // Create session
+    if (result.user) {
+      await createSession(result.user)
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'Login successful',
+      user: {
+        id: result.user?.id,
+        email: result.user?.email,
+        name: result.user?.name,
+        role: result.user?.role
+      }
+    })
   } catch (error) {
-    console.error('Login error:', error)
+    console.error('Login API error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
