@@ -136,27 +136,42 @@ const getStatusIcon = (status: string) => {
 }
 
 export default function AdminDashboard() {
-  const { user, isLoading } = useAppStore()
+  const { user, isLoading, isAuthenticated } = useAppStore()
   const router = useRouter()
+  const [hasRedirected, setHasRedirected] = useState(false)
 
   const isAdmin = user?.role === 'ADMIN'
 
   useEffect(() => {
-    if (isLoading) return
+    // Don't redirect if we're still loading or already redirected
+    if (isLoading || hasRedirected) return
     
-    if (!user || !isAdmin) {
-      router.push('/auth/login')
+    // Only redirect if we're sure there's no authenticated admin user
+    if (!isAuthenticated || !user || !isAdmin) {
+      setHasRedirected(true)
+      router.replace('/auth/login') // Use replace instead of push to avoid history issues
     }
-  }, [user, isAdmin, isLoading, router])
+  }, [user, isAdmin, isLoading, isAuthenticated, router, hasRedirected])
 
-  if (isLoading || !user || !isAdmin) {
+  // Show loading state while checking authentication
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-sm text-gray-600">
-            {isLoading ? 'Loading...' : 'Checking access...'}
-          </p>
+          <p className="mt-2 text-sm text-gray-600">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Show access denied if not admin
+  if (!isAuthenticated || !user || !isAdmin) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-2 text-sm text-gray-600">Checking access...</p>
         </div>
       </div>
     )

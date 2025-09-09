@@ -104,42 +104,79 @@ export const useAppStore = create<AppState>()(
         } catch (error) {
           console.error('Logout error:', error);
         } finally {
+          // Clear the state completely
           set({
             user: null,
             isAuthenticated: false,
             isLoading: false,
             authError: null,
           });
+          
+          // Force clear the persisted storage
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('omaima-auth-storage');
+            sessionStorage.removeItem('omaima-auth-storage');
+          }
         }
       },
 
       refreshAuth: async () => {
-        set({ isLoading: true });
+        set({ isLoading: true, authError: null });
 
         try {
           const response = await fetch('/api/auth/me', {
             method: 'GET',
+            credentials: 'include', // Ensure cookies are included
           });
 
           if (response.ok) {
             const data = await response.json();
-            set({
-              user: data.user,
-              isAuthenticated: true,
-              isLoading: false,
-            });
-          } else {
+            if (data.success && data.user) {
+              set({
+                user: data.user,
+                isAuthenticated: true,
+                isLoading: false,
+                authError: null,
+              });
+            } else {
+              // Invalid response structure
+              set({
+                user: null,
+                isAuthenticated: false,
+                isLoading: false,
+                authError: null,
+              });
+            }
+          } else if (response.status === 401) {
+            // Unauthorized - clear state and storage
             set({
               user: null,
               isAuthenticated: false,
               isLoading: false,
+              authError: null,
+            });
+            
+            // Clear persisted storage on unauthorized
+            if (typeof window !== 'undefined') {
+              localStorage.removeItem('omaima-auth-storage');
+              sessionStorage.removeItem('omaima-auth-storage');
+            }
+          } else {
+            // Other error status
+            set({
+              user: null,
+              isAuthenticated: false,
+              isLoading: false,
+              authError: 'Authentication check failed',
             });
           }
         } catch (error) {
+          console.error('Auth refresh error:', error);
           set({
             user: null,
             isAuthenticated: false,
             isLoading: false,
+            authError: 'Network error during authentication',
           });
         }
       },

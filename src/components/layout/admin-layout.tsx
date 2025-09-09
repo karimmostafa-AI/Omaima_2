@@ -52,9 +52,12 @@ export function AdminLayout({ children, title, subtitle }: AdminLayoutProps) {
   const handleLogout = async () => {
     try {
       await logout()
-      router.push('/')
+      // Redirect to login page after logout
+      router.push('/auth/login')
     } catch (error) {
       console.error('Logout failed:', error)
+      // Even if logout fails, redirect to login
+      router.push('/auth/login')
     }
   }
 
