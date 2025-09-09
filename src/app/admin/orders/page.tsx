@@ -17,14 +17,16 @@ const OrdersListPage = async ({ searchParams }: OrdersListPageProps) => {
   const page = parseInt(searchParams.page || '1', 10);
   const limit = parseInt(searchParams.limit || '10', 10);
 
-  const { orders, total } = await getOrders({ status, page, limit });
+  const result = await getOrders({ status, page, limit });
 
   return (
     <AdminLayout>
-      <div className="p-6">
-        <h1 className="text-2xl font-bold mb-4">Orders</h1>
-        <OrdersList orders={orders} total={total} page={page} limit={limit} />
-      </div>
+      <OrdersList 
+        orders={result.orders} 
+        total={result.total} 
+        page={result.currentPage} 
+        limit={limit} 
+      />
     </AdminLayout>
   );
 };
