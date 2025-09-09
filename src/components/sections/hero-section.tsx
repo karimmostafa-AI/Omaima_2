@@ -4,9 +4,9 @@ import Link from "next/link"
 
 export function HeroSection() {
   return (
-    <section className="relative min-h-[700px] flex items-center">
-      {/* Enhanced background overlay */}
-      <div className="absolute inset-0 bg-black/20"></div>
+    <section className="relative min-h-[800px] flex items-center">
+      {/* Subtle enhancement overlay */}
+      <div className="absolute inset-0 bg-gradient-to-b from-black/10 to-transparent"></div>
       
       <div className="container mx-auto px-4 py-16 sm:px-6 lg:px-8">
         <div className="relative z-20 max-w-2xl">
@@ -17,8 +17,8 @@ export function HeroSection() {
             <span className="text-[#cf1773] drop-shadow-lg">Professional Style</span>
           </h1>
           
-          {/* Description with backdrop */}
-          <div className="bg-black/30 backdrop-blur-sm rounded-lg p-6 mb-8">
+          {/* Description with elegant backdrop */}
+          <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-8 mb-8 shadow-2xl">
             <p className="text-xl text-white leading-relaxed">
               Discover our curated collection of women's formal suits and uniforms, 
               designed for confidence and sophistication in every professional setting.
@@ -60,18 +60,18 @@ export function HeroSection() {
         </div>
       </div>
       
-      {/* Enhanced background image */}
+      {/* Beautiful background image without gradient overlay */}
       <div className="absolute inset-0 -z-10">
-        <div className="h-full w-full bg-gradient-to-br from-gray-900 via-gray-800 to-gray-700">
-          <img
-            alt="Professional woman in elegant business attire"
-            className="h-full w-full object-cover opacity-90"
-            src="/9f05a07f-72e0-4213-ad1d-1d230da091e0.jfif"
-            onError={(e) => {
-              e.currentTarget.style.display = 'none';
-            }}
-          />
-        </div>
+        <img
+          alt="Professional woman in elegant business attire"
+          className="h-full w-full object-cover"
+          src="/9f05a07f-72e0-4213-ad1d-1d230da091e0.jfif"
+          onError={(e) => {
+            e.currentTarget.style.display = 'none';
+          }}
+        />
+        {/* Subtle overlay for text readability */}
+        <div className="absolute inset-0 bg-gradient-to-r from-black/40 via-transparent to-black/20"></div>
       </div>
     </section>
   )
