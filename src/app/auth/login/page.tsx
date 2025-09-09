@@ -3,30 +3,30 @@
 import { useEffect, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import { LoginForm } from '@/components/auth/login-form';
-import { useAuthStore } from '@/store/auth-store';
+import { useAppStore } from '@/store/app';
 import { Loader2 } from 'lucide-react';
 
 function LoginContent() {
   const router = useRouter();
-  const { user, loading } = useAuthStore();
+  const { user, isLoading } = useAppStore();
 
   useEffect(() => {
-    if (loading) return;
+    if (isLoading) return;
 
     if (user) {
-      // Redirect authenticated users to dashboard
+      // Redirect authenticated users to appropriate dashboard
       const dashboardPath = user.role === 'ADMIN' ? '/admin' : '/dashboard';
       router.push(dashboardPath);
     }
-  }, [user, loading, router]);
+  }, [user, isLoading, router]);
 
-  if (loading || user) {
+  if (isLoading || user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
           <p className="text-sm text-muted-foreground">
-            {loading ? 'Loading...' : 'Redirecting...'}
+            {isLoading ? 'Loading...' : 'Redirecting...'}
           </p>
         </div>
       </div>
