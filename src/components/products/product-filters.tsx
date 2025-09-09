@@ -26,7 +26,7 @@ export function ProductFilters() {
   const [loading, setLoading] = useState(true)
   const [priceRange, setPriceRange] = useState([0, 1000])
 
-  const selectedCategory = searchParams.get('category')
+  const selectedCategory = searchParams.get('categoryId')
   const minPrice = parseFloat(searchParams.get('priceMin') || '0')
   const maxPrice = parseFloat(searchParams.get('priceMax') || '1000')
 
@@ -92,15 +92,17 @@ export function ProductFilters() {
 
   const clearAllFilters = () => {
     const params = new URLSearchParams(searchParams.toString())
-    params.delete('category')
+    params.delete('categoryId')
     params.delete('priceMin')
     params.delete('priceMax')
+    params.delete('inStock')
     params.delete('page')
     
     router.push(`/products?${params.toString()}`)
   }
 
-  const hasActiveFilters = selectedCategory || minPrice > 0 || maxPrice < 1000
+  const hasActiveFilters = selectedCategory || minPrice > 0 || maxPrice < 1000 ||
+    searchParams.get('inStock') === 'true'
 
   return (
     <div className="space-y-6">
@@ -124,9 +126,9 @@ export function ProductFilters() {
             <div className="flex flex-wrap gap-2">
               {selectedCategory && (
                 <Badge variant="secondary" className="flex items-center gap-1">
-                  {Array.isArray(categories) ? categories.find(c => c.slug === selectedCategory)?.name || selectedCategory : selectedCategory}
+                  {Array.isArray(categories) ? categories.find(c => c.id === selectedCategory)?.name || selectedCategory : selectedCategory}
                   <button
-                    onClick={() => updateFilters('category', null)}
+                    onClick={() => updateFilters('categoryId', null)}
                     className="ml-1 hover:bg-muted-foreground/20 rounded-full p-0.5"
                   >
                     <X className="h-3 w-3" />
@@ -143,6 +145,17 @@ export function ProductFilters() {
                       params.delete('priceMax')
                       router.push(`/products?${params.toString()}`)
                     }}
+                    className="ml-1 hover:bg-muted-foreground/20 rounded-full p-0.5"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              )}
+              {searchParams.get('inStock') === 'true' && (
+                <Badge variant="secondary" className="flex items-center gap-1">
+                  In Stock Only
+                  <button
+                    onClick={() => updateFilters('inStock', null)}
                     className="ml-1 hover:bg-muted-foreground/20 rounded-full p-0.5"
                   >
                     <X className="h-3 w-3" />
@@ -172,9 +185,9 @@ export function ProductFilters() {
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     id={category.id}
-                    checked={selectedCategory === category.slug}
+                    checked={selectedCategory === category.id}
                     onCheckedChange={(checked) => {
-                      updateFilters('category', checked ? category.slug : null)
+                      updateFilters('categoryId', checked ? category.id : null)
                     }}
                   />
                   <Label
@@ -219,22 +232,22 @@ export function ProductFilters() {
         </CardContent>
       </Card>
 
-      {/* Product Type */}
+      {/* Stock Filter */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm">Product Type</CardTitle>
+          <CardTitle className="text-sm">Availability</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex items-center space-x-2">
-            <Checkbox id="customizable" />
-            <Label htmlFor="customizable" className="text-sm font-normal cursor-pointer">
-              Customizable
-            </Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Checkbox id="ready-made" />
-            <Label htmlFor="ready-made" className="text-sm font-normal cursor-pointer">
-              Ready-made
+            <Checkbox 
+              id="in-stock" 
+              checked={searchParams.get('inStock') === 'true'}
+              onCheckedChange={(checked) => {
+                updateFilters('inStock', checked ? 'true' : null)
+              }}
+            />
+            <Label htmlFor="in-stock" className="text-sm font-normal cursor-pointer">
+              In Stock Only
             </Label>
           </div>
         </CardContent>

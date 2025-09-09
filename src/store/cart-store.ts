@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { cartService, type CartItem as ServiceCartItem, type AddToCartData } from '@/lib/cart-service'
 
 interface CartItem {
   id: string
@@ -28,19 +29,29 @@ interface CartStore {
   items: CartItem[]
   discountCodes: string[]
   isOpen: boolean
+  isLoading: boolean
+  error: string | null
   
   // Actions
-  addItem: (item: Omit<CartItem, 'id'>) => void
-  updateQuantity: (id: string, quantity: number) => void
-  removeItem: (id: string) => void
-  clearCart: () => void
+  addItem: (item: Omit<CartItem, 'id'>) => Promise<void>
+  updateQuantity: (id: string, quantity: number) => Promise<void>
+  removeItem: (id: string) => Promise<void>
+  clearCart: () => Promise<void>
   applyDiscount: (code: string) => void
   removeDiscount: (code: string) => void
   setIsOpen: (isOpen: boolean) => void
   
+  // API Sync
+  syncWithServer: (userId?: string) => Promise<void>
+  addToCartAPI: (data: AddToCartData) => Promise<void>
+  
   // Computed
   getSummary: () => CartSummary
   getItem: (productId: string, variantId?: string, customConfig?: any) => CartItem | undefined
+  
+  // State management
+  setLoading: (loading: boolean) => void
+  setError: (error: string | null) => void
 }
 
 const TAX_RATE = 0.08 // 8% tax rate
@@ -53,8 +64,11 @@ export const useCartStore = create<CartStore>()(
       items: [],
       discountCodes: [],
       isOpen: false,
+      isLoading: false,
+      error: null,
 
-      addItem: (newItem) => {
+      addItem: async (newItem) => {
+        // Optimistic local update
         const existingItem = get().getItem(
           newItem.productId, 
           newItem.variantId, 
@@ -62,26 +76,24 @@ export const useCartStore = create<CartStore>()(
         )
 
         if (existingItem) {
-          // Update quantity if item already exists
-          get().updateQuantity(existingItem.id, existingItem.quantity + newItem.quantity)
+          await get().updateQuantity(existingItem.id, existingItem.quantity + newItem.quantity)
         } else {
-          // Add new item
+          const tempId = `${newItem.productId}-${newItem.variantId || 'default'}-${Date.now()}`
           const item: CartItem = {
             ...newItem,
-            id: `${newItem.productId}-${newItem.variantId || 'default'}-${Date.now()}`,
+            id: tempId,
           }
-          set((state) => ({
-            items: [...state.items, item]
-          }))
+          set((state) => ({ items: [...state.items, item] }))
         }
       },
 
-      updateQuantity: (id, quantity) => {
+      updateQuantity: async (id, quantity) => {
         if (quantity <= 0) {
-          get().removeItem(id)
+          await get().removeItem(id)
           return
         }
 
+        // Optimistic update - always update local state
         set((state) => ({
           items: state.items.map((item) =>
             item.id === id 
@@ -89,16 +101,28 @@ export const useCartStore = create<CartStore>()(
               : item
           )
         }))
+
+        // Only sync with server for authenticated users
+        // For guest users, we only use local storage
+        // The server sync will happen when they log in via syncWithServer
       },
 
-      removeItem: (id) => {
+      removeItem: async (id) => {
+        // Always update local state immediately
         set((state) => ({
           items: state.items.filter((item) => item.id !== id)
         }))
+        
+        // Only sync with server for authenticated users
+        // For guest users, we only use local storage
       },
 
-      clearCart: () => {
+      clearCart: async () => {
+        // Always clear local state immediately
         set({ items: [], discountCodes: [] })
+        
+        // Only sync with server for authenticated users
+        // For guest users, we only use local storage
       },
 
       applyDiscount: (code) => {
@@ -115,6 +139,47 @@ export const useCartStore = create<CartStore>()(
 
       setIsOpen: (isOpen) => {
         set({ isOpen })
+      },
+
+      setLoading: (loading) => set({ isLoading: loading }),
+      setError: (error) => set({ error }),
+
+      syncWithServer: async () => {
+        set({ isLoading: true, error: null })
+        try {
+          const serverCart = await cartService.getCart()
+          if (serverCart && Array.isArray(serverCart.items)) {
+            set({ items: serverCart.items as unknown as CartItem[] })
+          }
+        } catch (e: any) {
+          set({ error: e?.message ?? 'Failed to sync cart' })
+        } finally {
+          set({ isLoading: false })
+        }
+      },
+
+      addToCartAPI: async (data) => {
+        set({ isLoading: true, error: null })
+        try {
+          const result = await cartService.addToCart(data)
+          if (result?.item) {
+            const item = result.item as unknown as CartItem
+            set((state) => {
+              const exists = state.items.find((i) => i.id === item.id)
+              if (exists) {
+                return {
+                  items: state.items.map((i) => (i.id === item.id ? item : i)),
+                }
+              }
+              return { items: [...state.items, item] }
+            })
+          }
+        } catch (e: any) {
+          set({ error: e?.message ?? 'Failed to add to cart' })
+          throw e
+        } finally {
+          set({ isLoading: false })
+        }
       },
 
       getSummary: () => {

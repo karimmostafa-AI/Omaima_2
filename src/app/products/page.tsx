@@ -6,9 +6,19 @@ import { Skeleton } from '@/components/ui/skeleton';
 interface ProductsPageProps {
   searchParams: Promise<{
     category?: string;
+    categoryId?: string;
     search?: string;
     sortBy?: 'name' | 'price' | 'createdAt';
     sortOrder?: 'asc' | 'desc';
+    priceMin?: string;
+    priceMax?: string;
+    materials?: string;
+    sizes?: string;
+    colors?: string;
+    brands?: string;
+    inStock?: string;
+    isCustomizable?: string;
+    isReadyMade?: string;
     page?: string;
     limit?: string;
   }>;
@@ -20,10 +30,19 @@ async function ProductsList({ searchParams }: ProductsPageProps) {
   const limit = parseInt(resolvedSearchParams.limit || '12', 10);
 
   const { products, pagination } = await ProductService.getProducts({
-    categoryId: resolvedSearchParams.category,
+    categoryId: resolvedSearchParams.categoryId || resolvedSearchParams.category,
     search: resolvedSearchParams.search,
     sortBy: resolvedSearchParams.sortBy,
     sortOrder: resolvedSearchParams.sortOrder,
+    priceMin: resolvedSearchParams.priceMin ? parseFloat(resolvedSearchParams.priceMin) : undefined,
+    priceMax: resolvedSearchParams.priceMax ? parseFloat(resolvedSearchParams.priceMax) : undefined,
+    materials: resolvedSearchParams.materials ? resolvedSearchParams.materials.split(',') : undefined,
+    sizes: resolvedSearchParams.sizes ? resolvedSearchParams.sizes.split(',') : undefined,
+    colors: resolvedSearchParams.colors ? resolvedSearchParams.colors.split(',') : undefined,
+    brands: resolvedSearchParams.brands ? resolvedSearchParams.brands.split(',') : undefined,
+    inStock: resolvedSearchParams.inStock === 'true',
+    isCustomizable: resolvedSearchParams.isCustomizable === 'true',
+    isReadyMade: resolvedSearchParams.isReadyMade === 'true',
     page,
     limit,
   });

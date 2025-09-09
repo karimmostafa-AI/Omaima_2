@@ -7,10 +7,14 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Slider } from '@/components/ui/slider'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Label } from '@/components/ui/label'
 import { useCustomizerStore } from '@/store/customizer'
 import { Fabric } from '@/types'
 import { formatPrice } from '@/lib/utils'
-import { CheckCircle, Search, Palette, Info } from 'lucide-react'
+import { CheckCircle, Search, Palette, Info, SlidersHorizontal, X } from 'lucide-react'
 import Image from 'next/image'
 
 export function FabricSelection() {
@@ -135,17 +139,46 @@ export function FabricSelection() {
     setFabric(fabricId)
   }
 
+  const [priceRange, setPriceRange] = useState([0, 100])
+  const [selectedComposition, setSelectedComposition] = useState('')
+  const [selectedSeason, setSelectedSeason] = useState('')
+  const [onlyInStock, setOnlyInStock] = useState(false)
+  const [sortBy, setSortBy] = useState('name')
+
   const filteredFabrics = fabrics.filter(fabric => {
     const matchesSearch = fabric.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          fabric.color_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         fabric.composition.toLowerCase().includes(searchTerm.toLowerCase())
+                         fabric.composition.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         fabric.fabric_code.toLowerCase().includes(searchTerm.toLowerCase())
     
     const matchesCategory = selectedCategory === 'all' || 
                           (selectedCategory === 'premium' && fabric.is_premium) ||
                           (selectedCategory === 'standard' && !fabric.is_premium) ||
                           fabric.pattern_type === selectedCategory
+    
+    const matchesPrice = fabric.price_per_unit >= priceRange[0] && fabric.price_per_unit <= priceRange[1]
+    
+    const matchesComposition = !selectedComposition || 
+                              fabric.composition.toLowerCase().includes(selectedComposition.toLowerCase())
+    
+    const matchesSeason = !selectedSeason || fabric.season === selectedSeason
+    
+    const matchesStock = !onlyInStock || fabric.stock_quantity > 0
 
-    return matchesSearch && matchesCategory
+    return matchesSearch && matchesCategory && matchesPrice && matchesComposition && matchesSeason && matchesStock
+  }).sort((a, b) => {
+    switch (sortBy) {
+      case 'price-asc':
+        return a.price_per_unit - b.price_per_unit
+      case 'price-desc':
+        return b.price_per_unit - a.price_per_unit
+      case 'name':
+        return a.name.localeCompare(b.name)
+      case 'newest':
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      default:
+        return 0
+    }
   })
 
   const categories = [
@@ -185,7 +218,7 @@ export function FabricSelection() {
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
           <Input
-            placeholder="Search by fabric name, color, or composition..."
+            placeholder="Search by fabric name, color, composition, or code..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
@@ -201,6 +234,111 @@ export function FabricSelection() {
             ))}
           </TabsList>
         </Tabs>
+        
+        {/* Advanced Filters */}
+        <div className="border rounded-lg p-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="font-medium flex items-center gap-2">
+              <SlidersHorizontal className="w-4 h-4" />
+              Advanced Filters
+            </h3>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setPriceRange([0, 100])
+                setSelectedComposition('')
+                setSelectedSeason('')
+                setOnlyInStock(false)
+                setSortBy('name')
+              }}
+              className="text-xs"
+            >
+              Reset Filters
+            </Button>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* Price Range */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Price Range (${priceRange[0]} - ${priceRange[1]})</Label>
+              <Slider
+                value={priceRange}
+                onValueChange={setPriceRange}
+                max={200}
+                min={0}
+                step={5}
+                className="w-full"
+              />
+            </div>
+            
+            {/* Composition Filter */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Composition</Label>
+              <Select value={selectedComposition} onValueChange={setSelectedComposition}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Any composition" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Any composition</SelectItem>
+                  <SelectItem value="wool">Wool</SelectItem>
+                  <SelectItem value="cotton">Cotton</SelectItem>
+                  <SelectItem value="silk">Silk</SelectItem>
+                  <SelectItem value="linen">Linen</SelectItem>
+                  <SelectItem value="polyester">Polyester</SelectItem>
+                  <SelectItem value="viscose">Viscose</SelectItem>
+                  <SelectItem value="elastane">Elastane</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {/* Season Filter */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Season</Label>
+              <Select value={selectedSeason} onValueChange={setSelectedSeason}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Any season" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Any season</SelectItem>
+                  <SelectItem value="spring-summer">Spring/Summer</SelectItem>
+                  <SelectItem value="fall-winter">Fall/Winter</SelectItem>
+                  <SelectItem value="year-round">Year Round</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          
+          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+            {/* Stock Filter */}
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="stock-filter"
+                checked={onlyInStock}
+                onCheckedChange={setOnlyInStock}
+              />
+              <Label htmlFor="stock-filter" className="text-sm font-medium cursor-pointer">
+                In Stock Only
+              </Label>
+            </div>
+            
+            {/* Sort Options */}
+            <div className="flex items-center space-x-2">
+              <Label className="text-sm font-medium">Sort by:</Label>
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger className="w-40">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="name">Name A-Z</SelectItem>
+                  <SelectItem value="price-asc">Price: Low to High</SelectItem>
+                  <SelectItem value="price-desc">Price: High to Low</SelectItem>
+                  <SelectItem value="newest">Newest First</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Fabric Grid */}

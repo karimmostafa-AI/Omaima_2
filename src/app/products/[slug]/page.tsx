@@ -1,10 +1,20 @@
 'use client';
 
+import React from 'react';
 import { MainLayout } from '@/components/layout/main-layout';
+import { AddToCartButton } from '@/components/cart/add-to-cart-button';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+
+interface DatabaseProduct {
+  id: string;
+  name: string;
+  price: number;
+  image?: string;
+  stock?: number;
+}
 
 const productData: Record<string, any> = {
   'professional-blazer-set': {
@@ -86,11 +96,60 @@ const reviews = [
 export default function ProductPage() {
   const params = useParams();
   const slug = params.slug as string;
-  const product = productData[slug] || productData['professional-blazer-set'];
+  const mockProduct = productData[slug] || productData['professional-blazer-set'];
   
   const [selectedSize, setSelectedSize] = useState('M');
   const [selectedColor, setSelectedColor] = useState('black');
   const [mainImage, setMainImage] = useState(0);
+  const [realProduct, setRealProduct] = useState<DatabaseProduct | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Try to fetch real product data, fallback to mock data
+  useEffect(() => {
+    const fetchProduct = async () => {
+      try {
+        const response = await fetch('/api/products/simple');
+        if (response.ok) {
+          const products = await response.json();
+          
+          // Try to find a product that matches the slug or just use the first one
+          let dbProduct = products.find((p: any) => 
+            p.name.toLowerCase().replace(/\s+/g, '-').includes(slug.toLowerCase()) ||
+            slug.includes(p.name.toLowerCase().replace(/\s+/g, '-'))
+          );
+          
+          // If no match found, use the first product
+          if (!dbProduct && products.length > 0) {
+            dbProduct = products[0];
+          }
+          
+          if (dbProduct) {
+            setRealProduct({
+              id: dbProduct.id,
+              name: dbProduct.name,
+              price: dbProduct.price,
+              image: dbProduct.image,
+              stock: dbProduct.stock
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch product:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProduct();
+  }, [slug]);
+
+  // Use real product data if available, otherwise use mock data
+  const product = realProduct ? {
+    ...mockProduct,
+    name: realProduct.name,
+    price: realProduct.price,
+    description: mockProduct.description // Keep mock description for now
+  } : mockProduct;
 
   return (
     <MainLayout>
@@ -139,10 +198,17 @@ export default function ProductPage() {
 
             {/* Product Details */}
             <div className="space-y-8">
-              <div>
-                <h1 className="text-4xl font-bold text-stone-800">{product.name}</h1>
-                <p className="text-stone-500 mt-2 text-lg">{product.description}</p>
-              </div>
+            <div>
+              <h1 className="text-4xl font-bold text-stone-800">{product.name}</h1>
+              <p className="text-stone-500 mt-2 text-lg">{product.description}</p>
+              {realProduct && (
+                <div className="mt-2">
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    ✓ Live Product Data
+                  </span>
+                </div>
+              )}
+            </div>
 
               <p className="text-4xl font-bold text-stone-900">${product.price.toFixed(2)}</p>
 
@@ -191,9 +257,23 @@ export default function ProductPage() {
 
               {/* Add to Cart */}
               <div className="pt-4">
-                <button className="w-full flex items-center justify-center rounded-lg h-14 px-6 bg-[#cf1773] text-white text-lg font-bold hover:bg-opacity-90 transition-colors">
-                  Add to Cart
-                </button>
+                {realProduct ? (
+                  <AddToCartButton
+                    product={realProduct}
+                    variantId={`${selectedSize}-${selectedColor}`}
+                    quantity={1}
+                    estimatedDeliveryDays={5}
+                    className="w-full h-14 text-lg font-bold bg-[#cf1773] hover:bg-[#b01460] border-[#cf1773]"
+                    size="lg"
+                  />
+                ) : (
+                  <button 
+                    className="w-full flex items-center justify-center rounded-lg h-14 px-6 bg-[#cf1773] text-white text-lg font-bold hover:bg-opacity-90 transition-colors"
+                    disabled={loading}
+                  >
+                    {loading ? 'Loading...' : 'Add to Cart'}
+                  </button>
+                )}
                 <p className="text-center text-stone-500 text-sm mt-3">Estimated Delivery: 3-5 business days</p>
               </div>
             </div>
@@ -245,21 +325,35 @@ export default function ProductPage() {
                 <p className="text-stone-500 text-sm">Based on 150 reviews</p>
               </div>
               <div className="grid min-w-[240px] max-w-[400px] flex-1 grid-cols-[auto_1fr_auto] items-center gap-x-4 gap-y-2">
-                {[
-                  { stars: '5 star', percentage: 40 },
-                  { stars: '4 star', percentage: 30 },
-                  { stars: '3 star', percentage: 15 },
-                  { stars: '2 star', percentage: 10 },
-                  { stars: '1 star', percentage: 5 }
-                ].map((rating) => (
-                  <>
-                    <p key={`${rating.stars}-label`} className="text-stone-600 text-sm font-medium">{rating.stars}</p>
-                    <div key={`${rating.stars}-bar`} className="flex h-2 flex-1 overflow-hidden rounded-full bg-stone-200">
-                      <div className="rounded-full bg-yellow-500" style={{ width: `${rating.percentage}%` }}></div>
-                    </div>
-                    <p key={`${rating.stars}-percent`} className="text-stone-500 text-sm font-medium text-right">{rating.percentage}%</p>
-                  </>
-                ))}
+                <p className="text-stone-600 text-sm font-medium">5 star</p>
+                <div className="flex h-2 flex-1 overflow-hidden rounded-full bg-stone-200">
+                  <div className="rounded-full bg-yellow-500" style={{ width: '40%' }}></div>
+                </div>
+                <p className="text-stone-500 text-sm font-medium text-right">40%</p>
+                
+                <p className="text-stone-600 text-sm font-medium">4 star</p>
+                <div className="flex h-2 flex-1 overflow-hidden rounded-full bg-stone-200">
+                  <div className="rounded-full bg-yellow-500" style={{ width: '30%' }}></div>
+                </div>
+                <p className="text-stone-500 text-sm font-medium text-right">30%</p>
+                
+                <p className="text-stone-600 text-sm font-medium">3 star</p>
+                <div className="flex h-2 flex-1 overflow-hidden rounded-full bg-stone-200">
+                  <div className="rounded-full bg-yellow-500" style={{ width: '15%' }}></div>
+                </div>
+                <p className="text-stone-500 text-sm font-medium text-right">15%</p>
+                
+                <p className="text-stone-600 text-sm font-medium">2 star</p>
+                <div className="flex h-2 flex-1 overflow-hidden rounded-full bg-stone-200">
+                  <div className="rounded-full bg-yellow-500" style={{ width: '10%' }}></div>
+                </div>
+                <p className="text-stone-500 text-sm font-medium text-right">10%</p>
+                
+                <p className="text-stone-600 text-sm font-medium">1 star</p>
+                <div className="flex h-2 flex-1 overflow-hidden rounded-full bg-stone-200">
+                  <div className="rounded-full bg-yellow-500" style={{ width: '5%' }}></div>
+                </div>
+                <p className="text-stone-500 text-sm font-medium text-right">5%</p>
               </div>
             </div>
             <div className="divide-y divide-stone-200 mt-10">
