@@ -9,7 +9,7 @@ const featuredProducts = [
     id: "1",
     name: "Professional Blazer Set",
     slug: "professional-blazer-set",
-    image: "/images/products/blazer.svg",
+    image: "/d3aa7ce5-3d38-4e2d-8751-cba0172f7af7.jfif",
     category: "Blazers",
     description: "Classic and modern blazer for every professional occasion",
     price: 299.99,
@@ -18,24 +18,55 @@ const featuredProducts = [
   },
   {
     id: "2", 
-    name: "Executive Pants",
-    slug: "executive-pants",
-    image: "/images/products/pants.svg",
-    category: "Bottoms",
-    description: "Tailored perfection with sophisticated style",
+    name: "Executive Dress",
+    slug: "executive-dress",
+    image: "/057fa6a6-c770-47be-9c24-3b15ffb77188.jfif",
+    category: "Dresses",
+    description: "Sophisticated dress perfect for executive meetings",
     price: 189.99,
     tags: ["new"]
   },
   {
     id: "3",
-    name: "Business Skirt",
-    slug: "business-skirt", 
-    image: "/images/products/skirt.svg",
-    category: "Skirts",
-    description: "Elegant and professional skirt for modern women",
+    name: "Professional Uniform Set",
+    slug: "professional-uniform-set", 
+    image: "/271000eb-d4f1-4171-812a-55e3b31fa80d.jfif",
+    category: "Uniforms",
+    description: "Modern color-blocking uniform set for professional settings",
     price: 159.99,
     comparePrice: 199.99,
     tags: []
+  },
+  {
+    id: "4",
+    name: "Elegant Business Suit",
+    slug: "elegant-business-suit",
+    image: "/2b9a4c7d-cd39-4ab0-b36c-77de46b4a36c.jfif",
+    category: "Suits",
+    description: "Premium polyester suit with impeccable tailoring",
+    price: 249.99,
+    tags: ["trending"]
+  },
+  {
+    id: "5",
+    name: "Executive Blazer",
+    slug: "executive-blazer",
+    image: "/43c47dc4-5ec8-454c-9ac0-fa356cbc802c.jfif",
+    category: "Blazers",
+    description: "Modern cropped blazer with wide-leg pants combination",
+    price: 219.99,
+    comparePrice: 259.99,
+    tags: ["bestseller"]
+  },
+  {
+    id: "6",
+    name: "Professional V-Neck Set",
+    slug: "professional-v-neck-set",
+    image: "/81f8f837-f8ff-45b0-a05a-9ee5fa79d5f5.jfif",
+    category: "Tops",
+    description: "Flattering V-neck design with modern darted back",
+    price: 139.99,
+    tags: ["new"]
   }
 ]
 
@@ -63,6 +94,9 @@ export function StaticFeaturedProducts() {
                     )}
                     {product.tags.includes('new') && (
                       <Badge variant="secondary" className="bg-green-100 text-green-800 shadow-lg">New Arrival</Badge>
+                    )}
+                    {product.tags.includes('trending') && (
+                      <Badge variant="secondary" className="bg-blue-100 text-blue-800 shadow-lg">Trending</Badge>
                     )}
                   </div>
                   <div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>

@@ -66,7 +66,7 @@ export function HeroSection() {
           <img
             alt="Professional woman in elegant business attire"
             className="h-full w-full object-cover opacity-90"
-            src="/images/hero/professional-hero.svg"
+            src="/9f05a07f-72e0-4213-ad1d-1d230da091e0.jfif"
             onError={(e) => {
               e.currentTarget.style.display = 'none';
             }}
