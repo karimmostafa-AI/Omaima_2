@@ -1,66 +1,47 @@
-import { prisma } from '@/lib/db';
-import { OrderStatus, FinancialStatus } from '@prisma/client';
+import { prisma } from '@/lib/db'
+import type { OrderStatus } from '.prisma/client'
 
-interface GetOrdersParams {
-  status?: OrderStatus | 'all';
-  page?: number;
-  limit?: number;
-}
-
-export const getOrders = async ({ status = 'all', page = 1, limit = 10 }: GetOrdersParams = {}) => {
-  const where: any = {};
-  if (status && status !== 'all') {
-    where.status = status;
-  }
-
-  const [orders, total] = await Promise.all([
-    prisma.order.findMany({
-      where,
+export class OrderService {
+  // Get all orders
+  static async getOrders() {
+    return await prisma.order.findMany({
       include: {
         user: true,
+        items: {
+          include: {
+            product: true
+          }
+        }
       },
-      skip: (page - 1) * limit,
-      take: limit,
-      orderBy: { createdAt: 'desc' },
-    }),
-    prisma.order.count({ where }),
-  ]);
-  return { orders, total };
-};
+      orderBy: { createdAt: 'desc' }
+    })
+  }
 
-export const getOrderById = async (id: string) => {
-  return prisma.order.findUnique({
-    where: { id },
-    include: {
-      user: true,
-      items: {
-        include: {
-          product: true,
-        },
-      },
-      shippingAddress: true,
-      billingAddress: true,
-    },
-  });
-};
-
-export const updateOrderStatus = async (id: string, status: OrderStatus) => {
-  return prisma.order.update({
-    where: { id },
-    data: { status },
-  });
-};
-
-export const updatePaymentStatus = async (id: string, financial_status: FinancialStatus) => {
-    return prisma.order.update({
+  // Get order by ID
+  static async getOrder(id: string) {
+    return await prisma.order.findUnique({
       where: { id },
-      data: { financial_status },
-    });
-  };
+      include: {
+        user: true,
+        items: {
+          include: {
+            product: true
+          }
+        }
+      }
+    })
+  }
 
-export const assignRiderToOrder = async (id: string, riderId: string) => {
-    return prisma.order.update({
-        where: { id },
-        data: { riderId },
-    });
-};
+  // Update order status
+  static async updateOrderStatus(id: string, status: OrderStatus) {
+    return await prisma.order.update({
+      where: { id },
+      data: { status }
+    })
+  }
+}
+
+// Named exports for compatibility
+export const getOrders = OrderService.getOrders;
+export const getOrderById = OrderService.getOrder;
+export const updateOrderStatus = OrderService.updateOrderStatus;

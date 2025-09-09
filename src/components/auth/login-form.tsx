@@ -2,75 +2,49 @@
 
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import Link from 'next/link';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-
-import { supabase } from '@/lib/supabase/client';
-
-const loginSchema = z.object({
-  email: z.string().email('Please enter a valid email address'),
-  password: z.string().min(1, 'Password is required'),
-  rememberMe: z.boolean(),
-});
-
-type LoginFormData = {
-  email: string;
-  password: string;
-  rememberMe: boolean;
-};
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAuthStore } from '@/store/auth-store';
 
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get('redirect') || '/dashboard';
+  const redirectTo = searchParams.get('redirect') || '/admin';
   
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  
+  const { setUser } = useAuthStore();
 
-  const form = useForm<LoginFormData>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: {
-      email: '',
-      password: '',
-      rememberMe: false,
-    },
-  });
-
-  const onSubmit = async (data: LoginFormData) => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     setError('');
     setLoading(true);
     
     try {
-      const { data: authData, error } = await supabase.auth.signInWithPassword({
-        email: data.email,
-        password: data.password,
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
       });
       
-      if (error) {
-        setError(error.message);
+      const data = await response.json();
+      
+      if (!response.ok) {
+        setError(data.error || 'Login failed');
         return;
       }
       
-      if (authData.user) {
-        const userRole = authData.user.user_metadata?.role || 'CUSTOMER';
-        
-        // Redirect based on role
-        if (userRole === 'ADMIN') {
-          router.push('/admin');
-        } else {
-          router.push(redirectTo);
-        }
+      if (data.user) {
+        setUser(data.user);
+        router.push(data.user.role === 'ADMIN' ? '/admin' : redirectTo);
       }
     } catch (err: any) {
       setError(err.message || 'An unexpected error occurred');
@@ -84,19 +58,19 @@ export function LoginForm() {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-center">
-            Welcome back
+            Admin Login
           </CardTitle>
           <CardDescription className="text-center">
-            Sign in to your Omaima account
+            Sign in to access the admin panel
           </CardDescription>
         </CardHeader>
 
         <CardContent>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
-              <Alert variant="destructive">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+                {error}
+              </div>
             )}
 
             <div className="space-y-2">
@@ -104,16 +78,12 @@ export function LoginForm() {
               <Input
                 id="email"
                 type="email"
-                placeholder="Enter your email"
-                {...form.register('email')}
+                placeholder="admin@omaima.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 disabled={loading}
-                className={form.formState.errors.email ? 'border-red-500' : ''}
+                required
               />
-              {form.formState.errors.email && (
-                <p className="text-sm text-red-500">
-                  {form.formState.errors.email.message}
-                </p>
-              )}
             </div>
 
             <div className="space-y-2">
@@ -122,10 +92,12 @@ export function LoginForm() {
                 <Input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="Enter your password"
-                  {...form.register('password')}
+                  placeholder="admin123"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   disabled={loading}
-                  className={form.formState.errors.password ? 'border-red-500 pr-10' : 'pr-10'}
+                  required
+                  className="pr-10"
                 />
                 <Button
                   type="button"
@@ -142,28 +114,6 @@ export function LoginForm() {
                   )}
                 </Button>
               </div>
-              {form.formState.errors.password && (
-                <p className="text-sm text-red-500">
-                  {form.formState.errors.password.message}
-                </p>
-              )}
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="rememberMe"
-                checked={form.watch('rememberMe')}
-                onCheckedChange={(checked) => 
-                  form.setValue('rememberMe', Boolean(checked))
-                }
-                disabled={loading}
-              />
-              <Label
-                htmlFor="rememberMe"
-                className="text-sm font-normal cursor-pointer"
-              >
-                Remember me for 30 days
-              </Label>
             </div>
 
             <Button 
@@ -181,28 +131,13 @@ export function LoginForm() {
               )}
             </Button>
 
-            <div className="text-center">
-              <Link
-                href="/auth/reset-password"
-                className="text-sm text-primary hover:underline"
-              >
-                Forgot your password?
-              </Link>
+            <div className="text-center text-sm text-gray-600">
+              <p>Demo credentials:</p>
+              <p>Email: admin@omaima.com</p>
+              <p>Password: admin123</p>
             </div>
           </form>
         </CardContent>
-
-        <CardFooter className="text-center">
-          <p className="text-sm text-muted-foreground">
-            Don't have an account?{' '}
-            <Link
-              href={`/auth/register${redirectTo !== '/dashboard' ? `?redirect=${encodeURIComponent(redirectTo)}` : ''}`}
-              className="text-primary hover:underline font-medium"
-            >
-              Sign up
-            </Link>
-          </p>
-        </CardFooter>
       </Card>
     </div>
   );

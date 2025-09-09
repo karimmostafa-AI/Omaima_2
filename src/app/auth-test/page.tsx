@@ -11,8 +11,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 export default function AuthTestPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
+  // Note: register functionality removed for MVP simplicity
   
   const { 
     user, 
@@ -20,7 +19,6 @@ export default function AuthTestPage() {
     isLoading, 
     authError,
     login, 
-    register, 
     logout,
     refreshAuth 
   } = useAppStore();
@@ -34,19 +32,7 @@ export default function AuthTestPage() {
     }
   };
 
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      await register({
-        email,
-        password,
-        firstName,
-        lastName,
-      });
-    } catch (error) {
-      console.error('Registration failed:', error);
-    }
-  };
+  // Register functionality removed for MVP
 
   const handleLogout = async () => {
     try {
@@ -127,7 +113,7 @@ export default function AuthTestPage() {
 
         {/* Login Form */}
         {!isAuthenticated && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="max-w-md mx-auto">
             <Card>
               <CardHeader>
                 <CardTitle>Login</CardTitle>
@@ -163,65 +149,6 @@ export default function AuthTestPage() {
                 </form>
               </CardContent>
             </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Register</CardTitle>
-                <CardDescription>Create a new account for testing</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleRegister} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="register-firstName">First Name</Label>
-                      <Input
-                        id="register-firstName"
-                        value={firstName}
-                        onChange={(e) => setFirstName(e.target.value)}
-                        placeholder="John"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="register-lastName">Last Name</Label>
-                      <Input
-                        id="register-lastName"
-                        value={lastName}
-                        onChange={(e) => setLastName(e.target.value)}
-                        placeholder="Doe"
-                        required
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <Label htmlFor="register-email">Email</Label>
-                    <Input
-                      id="register-email"
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="test@example.com"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="register-password">Password</Label>
-                    <Input
-                      id="register-password"
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="password123"
-                      required
-                      minLength={8}
-                    />
-                  </div>
-                  <Button type="submit" disabled={isLoading} className="w-full">
-                    {isLoading ? 'Creating Account...' : 'Create Account'}
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
           </div>
         )}
 
@@ -234,29 +161,28 @@ export default function AuthTestPage() {
           <CardContent>
             <div className="space-y-4">
               <div>
-                <h4 className="font-medium">Available Endpoints:</h4>
+                <h4 className="font-medium">Available Endpoints (MVP):</h4>
                 <ul className="list-disc list-inside text-sm space-y-1 mt-2">
-                  <li><code>POST /api/auth/register</code> - Create new account</li>
-                  <li><code>POST /api/auth/login</code> - Sign in</li>
+                  <li><code>POST /api/auth/simple-login</code> - Admin login</li>
                   <li><code>POST /api/auth/logout</code> - Sign out</li>
                   <li><code>GET /api/auth/me</code> - Get current user</li>
-                  <li><code>PUT /api/auth/me</code> - Update user profile</li>
-                  <li><code>POST /api/auth/reset-password</code> - Request password reset</li>
                 </ul>
+                <p className="text-sm text-gray-600 mt-2">
+                  Use admin credentials from .env.local: admin@example.com / admin123
+                </p>
               </div>
               
               <div>
                 <h4 className="font-medium">Test with cURL:</h4>
                 <pre className="bg-gray-100 p-4 rounded text-sm mt-2 overflow-auto">
-{`# Register a new user
-curl -X POST http://localhost:3000/api/auth/register \\
+{`# Admin Login
+curl -X POST http://localhost:3000/api/auth/simple-login \\
   -H "Content-Type: application/json" \\
-  -d '{"email":"test@example.com","password":"Test123!","firstName":"Test","lastName":"User"}'
+  -d '{"email":"admin@example.com","password":"admin123"}'
 
-# Login
-curl -X POST http://localhost:3000/api/auth/login \\
-  -H "Content-Type: application/json" \\
-  -d '{"email":"test@example.com","password":"Test123!","rememberMe":true}'`}
+# Get current user
+curl -X GET http://localhost:3000/api/auth/me \\
+  -H "Content-Type: application/json"`}
                 </pre>
               </div>
             </div>

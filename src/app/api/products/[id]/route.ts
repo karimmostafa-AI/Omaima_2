@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { ProductService } from '@/lib/services/product-service'
 import { getCurrentUser, isAdmin } from '@/lib/auth'
 import { z } from 'zod'
-import { ProductStatus, ProductType } from '@prisma/client'
+import { ProductStatus } from '@prisma/client'
 
 interface RouteParams {
   params: {
@@ -16,7 +16,6 @@ const productUpdateSchema = z.object({
   slug: z.string().min(3, 'Slug must be at least 3 characters').regex(/^[a-z0-9-]+$/, 'Slug must be lowercase with dashes only').optional(),
   description: z.string().optional(),
   shortDescription: z.string().optional(),
-  type: z.nativeEnum(ProductType).optional(),
   status: z.nativeEnum(ProductStatus).optional(),
   sku: z.string().optional(),
   price: z.number().positive('Price must be a positive number').optional(),
@@ -81,7 +80,7 @@ export async function PUT(
   { params }: RouteParams
 ) {
   const user = await getCurrentUser();
-  if (!isAdmin(user)) {
+  if (!user || !await isAdmin()) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
@@ -117,7 +116,7 @@ export async function DELETE(
   { params }: RouteParams
 ) {
   const user = await getCurrentUser();
-  if (!isAdmin(user)) {
+  if (!user || !await isAdmin()) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 

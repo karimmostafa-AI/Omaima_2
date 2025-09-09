@@ -1,53 +1,62 @@
-import { prisma } from '@/lib/db';
-import { Role, Permission } from '@prisma/client';
+// Basic role service for MVP
+// In this simplified version, we only have admin/user roles
+
+export interface Role {
+  id: string;
+  name: string;
+  permissions: string[];
+}
+
+export interface Permission {
+  id: string;
+  name: string;
+  description: string;
+}
 
 export class RoleService {
-  /**
-   * Get all roles with their permissions.
-   */
-  static async getRoles(): Promise<Role[]> {
-    return prisma.role.findMany({
-      include: {
-        permissions: { include: { permission: true } },
-      },
-    });
+  // For MVP, we have simple predefined roles
+  private static readonly ROLES: Role[] = [
+    {
+      id: '1',
+      name: 'admin',
+      permissions: ['manage_products', 'manage_categories', 'manage_orders', 'view_dashboard']
+    },
+    {
+      id: '2',
+      name: 'user',
+      permissions: ['view_products', 'create_orders']
+    }
+  ];
+
+  private static readonly PERMISSIONS: Permission[] = [
+    { id: '1', name: 'manage_products', description: 'Can create, edit, delete products' },
+    { id: '2', name: 'manage_categories', description: 'Can create, edit, delete categories' },
+    { id: '3', name: 'manage_orders', description: 'Can view and manage orders' },
+    { id: '4', name: 'view_dashboard', description: 'Can access admin dashboard' },
+    { id: '5', name: 'view_products', description: 'Can view products' },
+    { id: '6', name: 'create_orders', description: 'Can place orders' },
+  ];
+
+  static async getAllRoles(): Promise<Role[]> {
+    return this.ROLES;
   }
 
-  /**
-   * Get all available permissions.
-   */
-  static async getPermissions(): Promise<Permission[]> {
-      return prisma.permission.findMany({
-          orderBy: { name: 'asc' }
-      });
+  static async getRoleById(id: string): Promise<Role | null> {
+    return this.ROLES.find(role => role.id === id) || null;
   }
 
-  /**
-   * Create a new role.
-   */
-  static async createRole(name: string): Promise<Role> {
-    return prisma.role.create({
-      data: { name },
-    });
+  static async getAllPermissions(): Promise<Permission[]> {
+    return this.PERMISSIONS;
   }
 
-  /**
-   * Update the permissions for a given role.
-   */
-  static async syncPermissions(roleId: string, permissionIds: string[]): Promise<void> {
-    await prisma.$transaction(async (tx) => {
-      await tx.rolePermissions.deleteMany({
-        where: { roleId },
-      });
+  static async getUserRoles(userId: string): Promise<Role[]> {
+    // For MVP, we'll determine roles based on user type
+    // This would normally come from the database
+    return [this.ROLES[1]]; // Default to user role
+  }
 
-      if (permissionIds.length > 0) {
-        await tx.rolePermissions.createMany({
-          data: permissionIds.map(permissionId => ({
-            roleId,
-            permissionId,
-          })),
-        });
-      }
-    });
+  static async hasPermission(userId: string, permission: string): Promise<boolean> {
+    const userRoles = await this.getUserRoles(userId);
+    return userRoles.some(role => role.permissions.includes(permission));
   }
 }

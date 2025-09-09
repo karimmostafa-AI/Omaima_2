@@ -1,57 +1,51 @@
-import { prisma } from '@/lib/db';
-import { slugify } from '@/lib/utils';
-import { Category } from '@prisma/client';
+import { prisma } from '@/lib/db'
+import type { Category } from '.prisma/client'
 
-interface GetCategoriesParams {
-  page?: number;
-  limit?: number;
+export interface CategoryCreateData {
+  name: string
 }
 
-export const getCategories = async ({ page = 1, limit = 10 }: GetCategoriesParams = {}) => {
-  const [categories, total] = await Promise.all([
-    prisma.category.findMany({
-      skip: (page - 1) * limit,
-      take: limit,
-      orderBy: { position: 'asc' },
-      include: {
-        _count: {
-          select: {
-            products: {
-              where: { status: 'ACTIVE' }
-            }
-          }
-        }
-      }
-    }),
-    prisma.category.count(),
-  ]);
-  return { categories, total };
-};
-
-export const getCategoryById = async (id: string) => {
-  return prisma.category.findUnique({ where: { id } });
-};
-
-export const createCategory = async (data: Omit<Category, 'id' | 'slug' | 'created_at' | 'updated_at' | 'position'>) => {
-  const maxPosition = await prisma.category.aggregate({ _max: { position: true } });
-  const newPosition = (maxPosition._max.position || 0) + 1;
-
-  return prisma.category.create({
-    data: {
-      ...data,
-      slug: slugify(data.name),
-      position: newPosition,
-    },
-  });
-};
-
-export const updateCategory = async (id: string, data: Partial<Omit<Category, 'id' | 'slug' | 'created_at' | 'updated_at'>>) => {
-  const updateData: any = { ...data };
-  if (data.name) {
-    updateData.slug = slugify(data.name);
+export class CategoryService {
+  // Get all categories
+  static async getCategories() {
+    return await prisma.category.findMany({
+      orderBy: { name: 'asc' }
+    })
   }
-  return prisma.category.update({
-    where: { id },
-    data: updateData,
-  });
-};
+
+  // Get category by ID
+  static async getCategory(id: string) {
+    return await prisma.category.findUnique({
+      where: { id }
+    })
+  }
+
+  // Create new category (Admin only)
+  static async createCategory(data: CategoryCreateData) {
+    return await prisma.category.create({
+      data
+    })
+  }
+
+  // Update category (Admin only)
+  static async updateCategory(id: string, data: Partial<CategoryCreateData>) {
+    return await prisma.category.update({
+      where: { id },
+      data
+    })
+  }
+
+  // Delete category (Admin only)
+  static async deleteCategory(id: string) {
+    return await prisma.category.delete({
+      where: { id }
+    })
+  }
+}
+
+// Named exports for compatibility
+export const getCategories = CategoryService.getCategories;
+export const getCategoryById = CategoryService.getCategory;
+export const createCategory = CategoryService.createCategory;
+export const updateCategory = CategoryService.updateCategory;
+export const deleteCategory = CategoryService.deleteCategory;

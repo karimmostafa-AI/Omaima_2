@@ -1,60 +1,16 @@
-import { NextResponse, type NextRequest } from 'next/server';
-import { createClient } from '@/lib/supabase-middleware';
-import { securityService } from '@/lib/services/security-service';
+import { NextResponse, type NextRequest } from 'next/server'
+import { getSession } from '@/lib/auth'
 
-// Define protected routes and their security requirements
-interface RouteConfig {
-  paths: string[]
-  requiredRoles: string[]
-  requiresMFA?: boolean
-  ipWhitelist?: string[]
-  additionalSecurity?: {
-    requireAdminSession?: boolean
-    sessionTimeout?: number
-    maxConcurrentSessions?: number
-  }
-}
-
-const protectedRoutes: Record<string, RouteConfig> = {
-  // Admin routes - simplified security (no complex auth)
-  admin: {
-    paths: ['/admin'], // Protect the entire admin path
-    requiredRoles: ['ADMIN'],
-    requiresMFA: true, // Enforce MFA for all admin routes
-  },
-  // Staff routes - moderate security
-  staff: {
-    paths: ['/staff', '/dashboard/orders', '/dashboard/inventory'],
-    requiredRoles: ['STAFF', 'ADMIN'],
-  },
-  // Customer dashboard - standard security
-  customer: {
-    paths: ['/dashboard', '/profile', '/orders', '/designs', '/account'],
-    requiredRoles: ['CUSTOMER', 'STAFF', 'ADMIN'],
-  },
-};
-
-// Public routes that don't require authentication
+// Simple admin route protection
+const adminRoutes = ['/admin']
 const publicRoutes = [
   '/',
-  '/auth/login',
-  '/auth/register', 
-  '/auth/reset-password',
-  '/auth/callback',
-  '/auth/direct-login',
-  '/api/auth/login',
-  '/api/auth/register',
-  '/api/auth/logout',
-  '/api/auth/reset-password',
-  '/api/auth/callback',
-  '/api/auth/get-ip',
-  '/api/auth/simple-login',
-  '/api/setup-admin',
   '/products',
-  '/customize', // Allow customize page to be accessed without authentication
-  '/about',
-  '/contact'
-];
+  '/auth/login',
+  '/api/auth/login',
+  '/api/auth/logout',
+  '/api/products'
+]
 
 // Routes that should bypass middleware entirely
 const bypassRoutes = [
@@ -63,391 +19,55 @@ const bypassRoutes = [
   '/favicon.ico',
   '/robots.txt',
   '/sitemap.xml'
-];
+]
 
-// Helper functions
-function getRouteConfig(pathname: string): RouteConfig | null {
-  for (const [key, config] of Object.entries(protectedRoutes)) {
-    if (config.paths.some(path => pathname.startsWith(path))) {
-      return config;
-    }
-  }
-  return null;
+function shouldBypassMiddleware(pathname: string): boolean {
+  return bypassRoutes.some(route => pathname.startsWith(route)) || 
+         pathname.includes('.')
 }
 
 function isPublicRoute(pathname: string): boolean {
   return publicRoutes.some(route => {
     if (route === '/') {
-      return pathname === '/';
+      return pathname === '/'
     }
-    return pathname.startsWith(route);
-  });
+    return pathname.startsWith(route)
+  })
 }
 
-function shouldBypassMiddleware(pathname: string): boolean {
-  return bypassRoutes.some(route => pathname.startsWith(route)) || 
-         pathname.includes('.');
-}
-
-function getClientIP(request: NextRequest): string {
-  return securityService.getClientIP(request);
-}
-
-function getUserAgent(request: NextRequest): string {
-  return request.headers.get('user-agent') || 'unknown';
+function isAdminRoute(pathname: string): boolean {
+  return adminRoutes.some(route => pathname.startsWith(route))
 }
 
 export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-  const clientIP = getClientIP(request);
-  const userAgent = getUserAgent(request);
+  const { pathname } = request.nextUrl
 
   // Skip middleware for static files and bypass routes
   if (shouldBypassMiddleware(pathname)) {
-    return NextResponse.next();
+    return NextResponse.next()
   }
 
   // Allow public routes
   if (isPublicRoute(pathname)) {
-    return NextResponse.next();
+    return NextResponse.next()
   }
 
-  // Check if route requires protection
-  const routeConfig = getRouteConfig(pathname);
-  if (!routeConfig) {
-    return NextResponse.next();
-  }
-
-  try {
-    const supabase = createClient();
-
-    // Get session from cookies or headers
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-
-    // Handle case where Supabase is not configured (development mode)
-    if (sessionError && sessionError.message === 'Supabase not configured') {
-      console.warn('Middleware: Supabase not configured, allowing access in development mode')
-      
-      // In development without Supabase, allow access but add warning headers
-      const response = NextResponse.next();
-      response.headers.set('x-auth-status', 'development-mode');
-      response.headers.set('x-warning', 'supabase-not-configured');
-      return response;
-    }
-
-    if (sessionError || !session?.user) {
+  // Check if this is an admin route
+  if (isAdminRoute(pathname)) {
+    const user = await getSession()
+    
+    if (!user || user.role !== 'ADMIN') {
       if (pathname.startsWith('/api/')) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
       }
-      // Redirect to login with return URL for web pages
-      const redirectUrl = new URL('/auth/login', request.url);
-      redirectUrl.searchParams.set('redirect', pathname);
-      return NextResponse.redirect(redirectUrl);
-    }
-
-    // Enhanced security logging
-    await securityService.logSecurityEvent({
-      type: 'login',
-      userId: session.user.id,
-      ip: clientIP,
-      userAgent,
-      details: { 
-        action: 'route_access_attempt',
-        path: pathname,
-        method: request.method
-      }
-    });
-
-    // Get user data with role and additional security info
-    const { data: user, error: userError } = await supabase
-      .from('users')
-      .select(`
-        id, email, role, isActive, emailVerified, 
-        mfaEnabled, lastLoginAt, createdAt
-      `)
-      .eq('id', session.user.id)
-      .single();
-
-    // Handle case where Supabase is not configured
-    if (userError && userError.message === 'Supabase not configured') {
-      console.warn('Middleware: User fetch failed due to Supabase not configured, creating mock user')
       
-      // Create a mock user for development
-      const mockUser = {
-        id: session.user.id,
-        email: session.user.email || 'dev@example.com',
-        role: 'ADMIN', // Default to admin in development
-        isActive: true,
-        emailVerified: true,
-        mfaEnabled: false,
-        lastLoginAt: new Date(),
-        createdAt: new Date()
-      };
-      
-      // Continue with mock user
-      const response = NextResponse.next();
-      response.headers.set('x-auth-status', 'development-mode');
-      response.headers.set('x-user-role', mockUser.role);
-      return response;
-    }
-
-    if (userError || !user) {
-      console.error('User fetch error:', userError);
-      if (pathname.startsWith('/api/')) {
-        return NextResponse.json({ error: 'Invalid user session' }, { status: 401 });
-      }
-      const redirectUrl = new URL('/auth/login', request.url);
-      redirectUrl.searchParams.set('redirect', pathname);
-      return NextResponse.redirect(redirectUrl);
-    }
-
-    // Check if user account is active
-    if (!user.isActive) {
-      await securityService.logSecurityEvent({
-        type: 'failed_login',
-        userId: user.id,
-        ip: clientIP,
-        userAgent,
-        details: { reason: 'account_suspended' }
-      });
-      
-      const redirectUrl = new URL('/auth/account-suspended', request.url);
-      return NextResponse.redirect(redirectUrl);
-    }
-
-    // Enhanced admin route security
-    if (routeConfig.paths.some(path => pathname.startsWith(path) && path.includes('admin'))) {
-      return await handleAdminRouteAccess(request, routeConfig, user, clientIP, userAgent, session);
-    }
-
-    // Standard role-based access control
-    if (!routeConfig.requiredRoles.includes(user.role)) {
-      await securityService.logSecurityEvent({
-        type: 'failed_login',
-        userId: user.id,
-        ip: clientIP,
-        userAgent,
-        details: { 
-          reason: 'insufficient_role',
-          requiredRoles: routeConfig.requiredRoles,
-          userRole: user.role
-        }
-      });
-
-      // Redirect based on user role
-      let redirectPath = '/dashboard';
-      if (user.role === 'ADMIN') {
-        redirectPath = '/admin';
-      } else if (user.role === 'STAFF') {
-        redirectPath = '/staff';
-      }
-
-      const redirectUrl = new URL(redirectPath, request.url);
-      return NextResponse.redirect(redirectUrl);
-    }
-
-    // Check for suspicious activity
-    const suspiciousActivity = await securityService.detectSuspiciousActivity({
-      userId: user.id,
-      ip: clientIP
-    });
-
-    if (suspiciousActivity) {
-      await securityService.triggerSecurityAlert(suspiciousActivity);
-      
-      // For critical alerts, block access
-      if (suspiciousActivity.severity === 'critical') {
-        const redirectUrl = new URL('/auth/security-alert', request.url);
-        return NextResponse.redirect(redirectUrl);
-      }
-    }
-
-    // Create response with security headers
-    const response = NextResponse.next();
-    
-    // Security headers for all responses
-    response.headers.set('X-Frame-Options', 'DENY');
-    response.headers.set('X-Content-Type-Options', 'nosniff');
-    response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-    response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
-    const csp = `
-      default-src 'self';
-      script-src 'self' 'unsafe-eval' 'unsafe-inline';
-      style-src 'self' 'unsafe-inline';
-      img-src 'self' data:;
-      font-src 'self';
-      object-src 'none';
-      base-uri 'self';
-      form-action 'self';
-      frame-ancestors 'none';
-      upgrade-insecure-requests;
-    `.replace(/\s{2,}/g, ' ').trim();
-    response.headers.set('Content-Security-Policy', csp);
-    
-    return response;
-
-  } catch (error) {
-    console.error('Middleware error:', error);
-    
-    // Log security error
-    await securityService.logSecurityEvent({
-      type: 'suspicious_activity',
-      ip: clientIP,
-      userAgent,
-      details: { 
-        error: 'middleware_error',
-        message: error instanceof Error ? error.message : 'Unknown error',
-        path: pathname
-      }
-    });
-    
-    // On error, redirect to login
-    const redirectUrl = new URL('/auth/login', request.url);
-    redirectUrl.searchParams.set('redirect', pathname);
-    redirectUrl.searchParams.set('error', 'security_error');
-    return NextResponse.redirect(redirectUrl);
-  }
-}
-
-/**
- * Enhanced admin route access handler with additional security measures
- */
-async function handleAdminRouteAccess(
-  request: NextRequest,
-  routeConfig: RouteConfig,
-  user: any,
-  clientIP: string,
-  userAgent: string,
-  session: any
-): Promise<NextResponse> {
-  const { pathname } = request.nextUrl;
-
-  // Check IP whitelist for admin routes
-  if (routeConfig.ipWhitelist && routeConfig.ipWhitelist.length > 0) {
-    const isIPAllowed = await securityService.validateIPAddress(clientIP, routeConfig.ipWhitelist);
-    
-    if (!isIPAllowed) {
-      await securityService.logSecurityEvent({
-        type: 'ip_blocked',
-        userId: user.id,
-        ip: clientIP,
-        userAgent,
-        details: {
-          reason: 'admin_ip_not_whitelisted',
-          path: pathname,
-          whitelist: routeConfig.ipWhitelist
-        }
-      });
-      
-      const redirectUrl = new URL('/auth/ip-blocked', request.url);
-      return NextResponse.redirect(redirectUrl);
+      const redirectUrl = new URL('/auth/login', request.url)
+      redirectUrl.searchParams.set('redirect', pathname)
+      return NextResponse.redirect(redirectUrl)
     }
   }
 
-  // Check MFA requirement for admin routes
-  if (routeConfig.requiresMFA && !user.mfaEnabled) {
-    await securityService.logSecurityEvent({
-      type: 'failed_login',
-      userId: user.id,
-      ip: clientIP,
-      userAgent,
-      details: {
-        reason: 'mfa_required_but_not_enabled',
-        path: pathname
-      }
-    });
-    
-    const redirectUrl = new URL('/auth/setup-mfa', request.url);
-    redirectUrl.searchParams.set('redirect', pathname);
-    return NextResponse.redirect(redirectUrl);
-  }
-
-  // Check admin session requirements
-  if (routeConfig.additionalSecurity?.requireAdminSession) {
-    const adminSessionToken = request.cookies.get('admin-session-token')?.value;
-    
-    if (!adminSessionToken) {
-      const redirectUrl = new URL('/auth/admin-login', request.url);
-      redirectUrl.searchParams.set('redirect', pathname);
-      return NextResponse.redirect(redirectUrl);
-    }
-
-    // Validate admin session
-    const supabase = createClient();
-    const { data: adminSession } = await supabase
-      .from('admin_sessions')
-      .select('*')
-      .eq('sessionToken', adminSessionToken)
-      .eq('userId', user.id)
-      .eq('isActive', true)
-      .single();
-
-    if (!adminSession || new Date(adminSession.expiresAt) < new Date()) {
-      await securityService.logSecurityEvent({
-        type: 'failed_login',
-        userId: user.id,
-        ip: clientIP,
-        userAgent,
-        details: {
-          reason: 'invalid_admin_session',
-          path: pathname
-        }
-      });
-      
-      const redirectUrl = new URL('/auth/admin-login', request.url);
-      redirectUrl.searchParams.set('redirect', pathname);
-      return NextResponse.redirect(redirectUrl);
-    }
-  }
-
-  // Rate limiting for admin routes
-  const rateLimitResult = await securityService.checkRateLimit(
-    `${user.id}:${clientIP}`, 
-    'admin_access'
-  );
-  
-  if (!rateLimitResult.allowed) {
-    await securityService.logSecurityEvent({
-      type: 'failed_login',
-      userId: user.id,
-      ip: clientIP,
-      userAgent,
-      details: {
-        reason: 'admin_rate_limit_exceeded',
-        path: pathname,
-        remaining: rateLimitResult.remaining
-      }
-    });
-    
-    const redirectUrl = new URL('/auth/rate-limited', request.url);
-    return NextResponse.redirect(redirectUrl);
-  }
-
-  // Increment rate limit counter
-  await securityService.incrementRateLimit(`${user.id}:${clientIP}`, 'admin_access');
-
-  // Log successful admin access
-  await securityService.logSecurityEvent({
-    type: 'admin_access',
-    userId: user.id,
-    ip: clientIP,
-    userAgent,
-    details: {
-      action: 'admin_route_access_granted',
-      path: pathname,
-      security_level: 'enhanced'
-    }
-  });
-
-  // Continue with the request
-  const response = NextResponse.next();
-  
-  // Add enhanced admin headers
-  response.headers.set('x-admin-session', 'verified');
-  response.headers.set('x-security-level', 'admin');
-  response.headers.set('x-rate-limit-remaining', rateLimitResult.remaining.toString());
-  
-  return response;
+  return NextResponse.next()
 }
 
 // Configure which routes should run the middleware
@@ -462,4 +82,4 @@ export const config = {
      */
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:png|jpg|jpeg|gif|svg|webp)$).*)',
   ],
-};
+}

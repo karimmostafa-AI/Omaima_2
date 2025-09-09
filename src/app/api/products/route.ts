@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { ProductService } from '@/lib/services/product-service';
 import { z } from 'zod';
 import { getCurrentUser, isAdmin } from '@/lib/auth';
-import { ProductStatus, ProductType } from '@prisma/client';
+import { ProductStatus } from '@prisma/client';
 
 const getProductsSchema = z.object({
   category: z.string().optional(),
@@ -18,7 +18,6 @@ const productCreateSchema = z.object({
   slug: z.string().min(3, 'Slug must be at least 3 characters').regex(/^[a-z0-9-]+$/, 'Slug must be lowercase with dashes only'),
   description: z.string().optional(),
   shortDescription: z.string().optional(),
-  type: z.nativeEnum(ProductType),
   status: z.nativeEnum(ProductStatus),
   sku: z.string().optional(),
   price: z.number().positive('Price must be a positive number'),
@@ -79,7 +78,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const user = await getCurrentUser();
 
-  if (!isAdmin(user)) {
+  if (!user || !await isAdmin()) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 

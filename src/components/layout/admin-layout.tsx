@@ -26,7 +26,6 @@ import {
   Maximize,
 } from 'lucide-react'
 import { AdminSidebar } from './admin-sidebar'
-import { useTheme } from 'next-themes'
 
 interface AdminLayoutProps {
   children: React.ReactNode
@@ -37,7 +36,6 @@ interface AdminLayoutProps {
 export function AdminLayout({ children, title, subtitle }: AdminLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
-  const { theme, setTheme } = useTheme()
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
@@ -111,15 +109,6 @@ export function AdminLayout({ children, title, subtitle }: AdminLayoutProps) {
               )}
             </div>
 
-            {/* Theme Toggle */}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            >
-              <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-              <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-            </Button>
 
             {/* Notifications */}
             <DropdownMenu>

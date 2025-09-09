@@ -1,39 +1,20 @@
-import { Suspense } from 'react'
-import CustomizeContent from './customize-content'
-import { Skeleton } from '@/components/ui/skeleton'
-
 export default function CustomizePage() {
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Suspense fallback={<CustomizePageSkeleton />}>
-        <CustomizeContent />
-      </Suspense>
-    </div>
-  )
-}
-
-function CustomizePageSkeleton() {
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left sidebar skeleton */}
-          <div className="lg:col-span-2 space-y-6">
-            <Skeleton className="h-8 w-64" />
-            <Skeleton className="h-4 w-96" />
-            <div className="space-y-4">
-              <Skeleton className="h-32 w-full" />
-              <Skeleton className="h-32 w-full" />
-              <Skeleton className="h-32 w-full" />
-            </div>
-          </div>
-          
-          {/* Right sidebar skeleton */}
-          <div className="space-y-6">
-            <Skeleton className="h-96 w-full" />
-            <Skeleton className="h-48 w-full" />
-          </div>
-        </div>
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="max-w-md mx-auto text-center p-8">
+        <h1 className="text-2xl font-bold text-gray-900 mb-4">
+          Product Customization
+        </h1>
+        <p className="text-gray-600 mb-6">
+          Product customization features are not available in this MVP version. 
+          This functionality will be added in future releases.
+        </p>
+        <a 
+          href="/products" 
+          className="inline-block bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 transition-colors"
+        >
+          Browse Products
+        </a>
       </div>
     </div>
   )

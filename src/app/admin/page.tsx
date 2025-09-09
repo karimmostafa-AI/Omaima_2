@@ -22,7 +22,7 @@ import {
   Clock,
   Star,
 } from "lucide-react"
-import { supabase } from '@/lib/supabase/client'
+import { useAuthStore } from '@/store/auth-store'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
@@ -136,44 +136,21 @@ const getStatusIcon = (status: string) => {
 }
 
 export default function AdminDashboard() {
-  const [user, setUser] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
+  const { user, isAdmin } = useAuthStore()
   const router = useRouter()
 
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession()
-        
-        if (!session) {
-          router.push('/auth/direct-login')
-          return
-        }
-
-        const userRole = session.user?.user_metadata?.role
-        if (userRole !== 'ADMIN') {
-          router.push('/auth/direct-login')
-          return
-        }
-
-        setUser(session.user)
-      } catch (error) {
-        console.error('Auth check error:', error)
-        router.push('/auth/direct-login')
-      } finally {
-        setLoading(false)
-      }
+    if (!user || !isAdmin()) {
+      router.push('/auth/login')
     }
+  }, [user, isAdmin, router])
 
-    checkAuth()
-  }, [router])
-
-  if (loading) {
+  if (!user || !isAdmin()) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-2 text-sm text-muted-foreground">Loading...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-2 text-sm text-gray-600">Loading...</p>
         </div>
       </div>
     )

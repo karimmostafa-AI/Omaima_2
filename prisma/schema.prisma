@@ -11,297 +11,80 @@ datasource db {
 }
 
 model User {
-  id            String          @id @default(cuid())
-  email         String          @unique
-  firstName     String?
-  lastName      String?
-  role          UserRole        @default(CUSTOMER)
-  passwordHash  String
-  emailVerified Boolean         @default(false)
-  isActive      Boolean         @default(true)
-  preferences   Json?
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
-  lastLogin     DateTime?
-  roles         Role[]          @relation("ModelHasRoles")
-  ModelHasRoles ModelHasRoles[]
-  orders        Order[]
-  refunds       Refund[]
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  role      UserRole @default(CUSTOMER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  orders    Order[]
 }
 
 enum UserRole {
   CUSTOMER
-  STAFF
   ADMIN
 }
 
-model Role {
-  id              String            @id @default(cuid())
-  name            String            @unique
-  permissions     Permission[]      @relation("RolePermissions")
-  users           User[]            @relation("ModelHasRoles")
-  RolePermissions RolePermissions[]
-  ModelHasRoles   ModelHasRoles[]
-
-  @@map("roles")
-}
-
-model Permission {
-  id              String            @id @default(cuid())
-  name            String            @unique
-  roles           Role[]            @relation("RolePermissions")
-  RolePermissions RolePermissions[]
-
-  @@map("permissions")
-}
-
-// Pivot table for Roles and Permissions
-model RolePermissions {
-  roleId       String
-  permissionId String
-  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
-
-  @@id([roleId, permissionId])
-  @@map("role_has_permissions")
-}
-
-// Pivot table for Users and Roles
-// Using an explicit model to match the PRD's naming convention
-model ModelHasRoles {
-  roleId    String
-  modelType String @default("User")
-  modelId   String
-  role      Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  user      User   @relation(fields: [modelId], references: [id], onDelete: Cascade)
-
-  @@id([roleId, modelId, modelType])
-  @@map("model_has_roles")
-}
-
-// E-commerce Models
 model Product {
-  id                        String                    @id @default(cuid())
-  name                      String
-  slug                      String                    @unique
-  description               String?
-  shortDescription          String?
-  type                      ProductType
-  status                    ProductStatus             @default(ACTIVE)
-  sku                       String?
-  price                     Float
-  compareAtPrice            Float?
-  costPrice                 Float?
-  trackQuantity             Boolean                   @default(false)
-  quantity                  Int?
-  weight                    Float?
-  requiresShipping          Boolean                   @default(true)
-  taxable                   Boolean                   @default(true)
-  taxCode                   String?
-  tags                      String?
-  basePrice                 Float
-  estimatedDeliveryDays     Int
-  createdAt                 DateTime                  @default(now())
-  updatedAt                 DateTime                  @updatedAt
+  id          String        @id @default(cuid())
+  name        String
+  description String?
+  price       Float
+  image       String?
+  stock       Int           @default(0)
+  status      ProductStatus @default(ACTIVE)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
   
   // Relations
-  categories                Category[]                @relation("ProductCategories")
-  images                    ProductImage[]
-  variants                  ProductVariant[]
-  customizationTemplates    CustomizationTemplate[]
-  orderItems                OrderItem[]
-
-  @@map("products")
-}
-
-enum ProductType {
-  STANDARD
-  CUSTOMIZABLE
+  categories  Category[]    @relation("ProductCategories")
+  orderItems  OrderItem[]
 }
 
 enum ProductStatus {
   ACTIVE
   INACTIVE
-  DRAFT
 }
 
 model Category {
-  id          String    @id @default(cuid())
-  name        String
-  slug        String    @unique
-  description String?
-  image       String?
-  position    Int
-  isActive    Boolean   @default(true)
-  parentId    String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  
-  // Relations
-  parent      Category? @relation("CategoryHierarchy", fields: [parentId], references: [id])
-  children    Category[] @relation("CategoryHierarchy")
-  products    Product[] @relation("ProductCategories")
-
-  @@map("categories")
-}
-
-model ProductImage {
-  id        String  @id @default(cuid())
-  url       String
-  altText   String?
-  position  Int
-  width     Int?
-  height    Int?
-  productId String
-  
-  // Relations
-  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-
-  @@map("product_images")
-}
-
-model ProductVariant {
-  id             String  @id @default(cuid())
-  title          String
-  option1        String?
-  option2        String?
-  option3        String?
-  sku            String?
-  price          Float
-  compareAtPrice Float?
-  costPrice      Float?
-  position       Int
-  quantity       Int
-  weight         Float?
-  productId      String
-  
-  // Relations
-  product        Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-
-  @@map("product_variants")
-}
-
-model CustomizationTemplate {
-  id        String                   @id @default(cuid())
+  id        String    @id @default(cuid())
   name      String
-  isActive  Boolean                  @default(true)
-  productId String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
   
   // Relations
-  product   Product                  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  options   CustomizationOption[]
-
-  @@map("customization_templates")
-}
-
-model CustomizationOption {
-  id         String                @id @default(cuid())
-  name       String
-  type       String
-  isActive   Boolean               @default(true)
-  position   Int
-  templateId String
-  
-  // Relations
-  template   CustomizationTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
-
-  @@map("customization_options")
+  products  Product[] @relation("ProductCategories")
 }
 
 model Order {
-  id                String            @id @default(cuid())
-  userId            String
-  status            OrderStatus       @default(PENDING)
-  financialStatus   FinancialStatus   @default(PENDING)
-  fulfillmentStatus FulfillmentStatus @default(UNFULFILLED)
-  subtotal          Float
-  tax               Float             @default(0)
-  shipping          Float             @default(0)
-  total             Float
-  shippingAddress   Json?
-  billingAddress    Json?
-  paymentMethod     Json?
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
-  confirmedAt       DateTime?
-  shippedAt         DateTime?
-  deliveredAt       DateTime?
+  id        String      @id @default(cuid())
+  userId    String
+  status    OrderStatus @default(PENDING)
+  total     Float
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
   
   // Relations
-  user              User              @relation(fields: [userId], references: [id])
-  items             OrderItem[]
-  refunds           Refund[]
-
-  @@map("orders")
+  user      User        @relation(fields: [userId], references: [id])
+  items     OrderItem[]
 }
 
 enum OrderStatus {
   PENDING
   CONFIRMED
-  PROCESSING
   SHIPPED
   DELIVERED
-  CANCELLED
-  REFUNDED
-}
-
-enum FinancialStatus {
-  PENDING
-  PAID
-  PARTIALLY_PAID
-  REFUNDED
-  PARTIALLY_REFUNDED
-  VOIDED
-}
-
-enum FulfillmentStatus {
-  UNFULFILLED
-  PARTIAL
-  FULFILLED
   CANCELLED
 }
 
 model OrderItem {
-  id             String  @id @default(cuid())
-  orderId        String
-  productId      String
-  quantity       Int
-  unitPrice      Float
-  totalPrice     Float
-  customization  Json?
-  notes          String?
+  id        String  @id @default(cuid())
+  orderId   String
+  productId String
+  quantity  Int
+  unitPrice Float
   
   // Relations
-  order          Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product        Product @relation(fields: [productId], references: [id])
-
-  @@map("order_items")
-}
-
-model Refund {
-  id           String       @id @default(cuid())
-  orderId      String
-  userId       String
-  status       RefundStatus @default(REQUESTED)
-  amount       Float
-  reason       String
-  items        Json?
-  notes        String?
-  requestedAt  DateTime     @default(now())
-  processedAt  DateTime?
-  processedBy  String?
-  
-  // Relations
-  order        Order        @relation(fields: [orderId], references: [id])
-  user         User         @relation(fields: [userId], references: [id])
-
-  @@map("refunds")
-}
-
-enum RefundStatus {
-  REQUESTED
-  APPROVED
-  REJECTED
-  PROCESSED
-  COMPLETED
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id])
 }
