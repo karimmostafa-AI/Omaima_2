@@ -1,9 +1,11 @@
 'use client'
 
 import React, { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { useAppStore } from '@/store/app'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,12 +38,23 @@ interface AdminLayoutProps {
 export function AdminLayout({ children, title, subtitle }: AdminLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
+  const { logout } = useAppStore()
+  const router = useRouter()
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
       document.documentElement.requestFullscreen()
     } else {
       document.exitFullscreen()
+    }
+  }
+
+  const handleLogout = async () => {
+    try {
+      await logout()
+      router.push('/')
+    } catch (error) {
+      console.error('Logout failed:', error)
     }
   }
 
@@ -155,12 +168,12 @@ export function AdminLayout({ children, title, subtitle }: AdminLayoutProps) {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src="/avatars/admin.jpg" alt="Admin" />
+                    <AvatarImage src="/images/avatars/admin.svg" alt="Admin" />
                     <AvatarFallback>AD</AvatarFallback>
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
+              <DropdownMenuContent align="end" className="bg-white border border-gray-200">
                 <DropdownMenuItem>
                   <User className="mr-2 h-4 w-4" />
                   Profile
@@ -170,7 +183,7 @@ export function AdminLayout({ children, title, subtitle }: AdminLayoutProps) {
                   Settings
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={handleLogout}>
                   <LogOut className="mr-2 h-4 w-4" />
                   Sign out
                 </DropdownMenuItem>

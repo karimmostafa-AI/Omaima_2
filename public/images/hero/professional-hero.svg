@@ -1,0 +1,95 @@
+<svg width="1200" height="600" viewBox="0 0 1200 600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Main background gradient -->
+    <linearGradient id="heroBackground" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f0f23"/>
+      <stop offset="40%" style="stop-color:#1a1a3e"/>
+      <stop offset="100%" style="stop-color:#2a2a5a"/>
+    </linearGradient>
+    
+    <!-- Spotlight gradient -->
+    <radialGradient id="spotlight" cx="75%" cy="40%" r="60%">
+      <stop offset="0%" style="stop-color:#cf1773" stop-opacity="0.4"/>
+      <stop offset="50%" style="stop-color:#8b1c5c" stop-opacity="0.2"/>
+      <stop offset="100%" style="stop-color:#000000" stop-opacity="0.8"/>
+    </radialGradient>
+    
+    <!-- Professional woman gradients -->
+    <linearGradient id="blazerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1f2937"/>
+      <stop offset="100%" style="stop-color:#374151"/>
+    </linearGradient>
+    
+    <linearGradient id="skinTone" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#d4a574"/>
+      <stop offset="100%" style="stop-color:#c29660"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="1200" height="600" fill="url(#heroBackground)"/>
+  <rect width="1200" height="600" fill="url(#spotlight)"/>
+  
+  <!-- Abstract geometric shapes -->
+  <circle cx="900" cy="150" r="80" fill="#cf1773" opacity="0.1"/>
+  <circle cx="1050" cy="300" r="120" fill="#8b1c5c" opacity="0.08"/>
+  <rect x="800" y="400" width="200" height="200" rx="20" fill="#cf1773" opacity="0.05"/>
+  
+  <!-- Professional woman silhouette -->
+  <g transform="translate(650, 80)">
+    <!-- Head -->
+    <ellipse cx="100" cy="80" rx="35" ry="45" fill="url(#skinTone)"/>
+    <!-- Hair -->
+    <path d="M65 60 Q100 30 135 60 Q140 90 135 110 L130 105 Q125 95 120 100 L115 95 Q110 90 105 95 L100 90 Q95 85 90 90 L85 95 Q80 90 75 95 L70 100 Q65 95 60 105 L65 110 Z" fill="#2d1810"/>
+    
+    <!-- Body (Professional blazer) -->
+    <rect x="50" y="125" width="100" height="200" rx="8" fill="url(#blazerGrad)" opacity="0.95"/>
+    
+    <!-- Blazer lapels -->
+    <polygon points="50,135 50,165 70,145" fill="#1f2937"/>
+    <polygon points="150,135 150,165 130,145" fill="#1f2937"/>
+    
+    <!-- White shirt -->
+    <rect x="70" y="140" width="60" height="80" rx="5" fill="white" opacity="0.9"/>
+    
+    <!-- Blazer buttons -->
+    <circle cx="85" cy="160" r="3" fill="#cf1773"/>
+    <circle cx="115" cy="160" r="3" fill="#cf1773"/>
+    <circle cx="85" cy="185" r="3" fill="#cf1773"/>
+    <circle cx="115" cy="185" r="3" fill="#cf1773"/>
+    
+    <!-- Arms -->
+    <rect x="10" y="150" width="60" height="18" rx="9" fill="url(#blazerGrad)" opacity="0.9"/>
+    <rect x="130" y="150" width="60" height="18" rx="9" fill="url(#blazerGrad)" opacity="0.9"/>
+    
+    <!-- Hands -->
+    <ellipse cx="15" cy="159" rx="8" ry="12" fill="url(#skinTone)"/>
+    <ellipse cx="185" cy="159" rx="8" ry="12" fill="url(#skinTone)"/>
+    
+    <!-- Professional skirt/pants -->
+    <rect x="60" y="325" width="80" height="150" rx="5" fill="#1f2937" opacity="0.9"/>
+    
+    <!-- Legs -->
+    <rect x="70" y="475" width="25" height="80" rx="12" fill="url(#skinTone)"/>
+    <rect x="105" y="475" width="25" height="80" rx="12" fill="url(#skinTone)"/>
+    
+    <!-- Professional heels -->
+    <ellipse cx="82" cy="565" rx="15" ry="8" fill="#1a1a1a"/>
+    <ellipse cx="117" cy="565" rx="15" ry="8" fill="#1a1a1a"/>
+  </g>
+  
+  <!-- Decorative elements -->
+  <circle cx="200" cy="100" r="4" fill="#cf1773" opacity="0.6"/>
+  <circle cx="300" cy="180" r="6" fill="#cf1773" opacity="0.4"/>
+  <circle cx="150" cy="250" r="3" fill="#cf1773" opacity="0.7"/>
+  <circle cx="250" cy="350" r="5" fill="#cf1773" opacity="0.5"/>
+  <circle cx="180" cy="420" r="4" fill="#cf1773" opacity="0.6"/>
+  
+  <!-- Abstract lines -->
+  <line x1="100" y1="50" x2="300" y2="100" stroke="#cf1773" stroke-width="2" opacity="0.3"/>
+  <line x1="50" y1="200" x2="250" y2="250" stroke="#8b1c5c" stroke-width="1" opacity="0.4"/>
+  <line x1="150" y1="400" x2="350" y2="450" stroke="#cf1773" stroke-width="1.5" opacity="0.3"/>
+  
+  <!-- Text area background -->
+  <rect x="50" y="450" width="500" height="120" fill="rgba(0,0,0,0.3)" rx="10"/>
+</svg>

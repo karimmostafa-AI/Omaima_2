@@ -22,7 +22,7 @@ import {
   Clock,
   Star,
 } from "lucide-react"
-import { useAuthStore } from '@/store/auth-store'
+import { useAppStore } from '@/store/app'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
@@ -31,7 +31,7 @@ const recentOrders = [
   {
     id: 'OM-2024-001',
     customer: 'Sarah Johnson',
-    avatar: '/avatars/sarah.jpg',
+    avatar: '/images/avatars/customer-1.svg',
     amount: 299.99,
     status: 'processing',
     date: '2024-01-15T10:30:00Z',
@@ -40,7 +40,7 @@ const recentOrders = [
   {
     id: 'OM-2024-002',
     customer: 'Maria Garcia',
-    avatar: '/avatars/maria.jpg',
+    avatar: '/images/avatars/customer-1.svg',
     amount: 459.99,
     status: 'shipped',
     date: '2024-01-14T15:45:00Z',
@@ -49,7 +49,7 @@ const recentOrders = [
   {
     id: 'OM-2024-003',
     customer: 'Jennifer Chen',
-    avatar: '/avatars/jennifer.jpg',
+    avatar: '/images/avatars/customer-1.svg',
     amount: 329.99,
     status: 'delivered',
     date: '2024-01-14T09:20:00Z',
@@ -58,7 +58,7 @@ const recentOrders = [
   {
     id: 'OM-2024-004',
     customer: 'Lisa Thompson',
-    avatar: '/avatars/lisa.jpg',
+    avatar: '/images/avatars/customer-1.svg',
     amount: 189.99,
     status: 'cancelled',
     date: '2024-01-13T14:20:00Z',
@@ -70,7 +70,7 @@ const topProducts = [
   {
     id: '1',
     name: 'Professional Blazer Set',
-    image: '/products/blazer.jpg',
+    image: '/images/products/blazer.svg',
     sold: 156,
     revenue: 31200,
     trend: 'up',
@@ -79,7 +79,7 @@ const topProducts = [
   {
     id: '2',
     name: 'Executive Pants',
-    image: '/products/pants.jpg',
+    image: '/images/products/pants.svg',
     sold: 89,
     revenue: 17800,
     trend: 'up',
@@ -88,7 +88,7 @@ const topProducts = [
   {
     id: '3',
     name: 'Business Skirt',
-    image: '/products/skirt.jpg',
+    image: '/images/products/skirt.svg',
     sold: 67,
     revenue: 13400,
     trend: 'down',
@@ -97,7 +97,7 @@ const topProducts = [
   {
     id: '4',
     name: 'Classic Dress',
-    image: '/products/dress.jpg',
+    image: '/images/products/dress.svg',
     sold: 45,
     revenue: 9000,
     trend: 'up',
@@ -136,21 +136,27 @@ const getStatusIcon = (status: string) => {
 }
 
 export default function AdminDashboard() {
-  const { user, isAdmin } = useAuthStore()
+  const { user, isLoading } = useAppStore()
   const router = useRouter()
 
+  const isAdmin = user?.role === 'ADMIN'
+
   useEffect(() => {
-    if (!user || !isAdmin()) {
+    if (isLoading) return
+    
+    if (!user || !isAdmin) {
       router.push('/auth/login')
     }
-  }, [user, isAdmin, router])
+  }, [user, isAdmin, isLoading, router])
 
-  if (!user || !isAdmin()) {
+  if (isLoading || !user || !isAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-sm text-gray-600">Loading...</p>
+          <p className="mt-2 text-sm text-gray-600">
+            {isLoading ? 'Loading...' : 'Checking access...'}
+          </p>
         </div>
       </div>
     )

@@ -1,0 +1,37 @@
+<svg width="300" height="400" viewBox="0 0 300 400" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="accessoryGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f9fafb"/>
+      <stop offset="100%" style="stop-color:#e5e7eb"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="300" height="400" fill="url(#accessoryGradient)"/>
+  
+  <!-- Accessories -->
+  <g transform="translate(50, 80)">
+    <!-- Handbag -->
+    <rect x="50" y="40" width="80" height="60" rx="5" fill="#1f2937" opacity="0.9"/>
+    <rect x="50" y="35" width="80" height="10" rx="5" fill="#374151"/>
+    <ellipse cx="65" cy="45" rx="3" ry="15" fill="#374151" opacity="0.8"/>
+    <ellipse cx="115" cy="45" rx="3" ry="15" fill="#374151" opacity="0.8"/>
+    
+    <!-- Necklace -->
+    <ellipse cx="100" cy="150" rx="40" ry="8" fill="none" stroke="#cf1773" stroke-width="3"/>
+    <circle cx="100" cy="158" r="6" fill="#cf1773"/>
+    
+    <!-- Earrings -->
+    <circle cx="70" cy="180" r="8" fill="#cf1773" opacity="0.8"/>
+    <circle cx="130" cy="180" r="8" fill="#cf1773" opacity="0.8"/>
+    
+    <!-- Belt -->
+    <rect x="40" y="210" width="120" height="8" rx="4" fill="#1f2937"/>
+    <rect x="150" y="206" width="15" height="16" rx="2" fill="#374151"/>
+  </g>
+  
+  <!-- Product label -->
+  <rect x="20" y="320" width="260" height="60" fill="rgba(255,255,255,0.9)" rx="5"/>
+  <text x="150" y="345" fill="#1f2937" font-size="18" font-family="Arial, sans-serif" font-weight="bold" text-anchor="middle">Professional Accessories</text>
+  <text x="150" y="365" fill="#6b7280" font-size="14" font-family="Arial, sans-serif" text-anchor="middle">Complete Your Look</text>
+</svg>

@@ -47,10 +47,6 @@ export const useAppStore = create<AppState>()(
             isLoading: false,
             authError: null,
           });
-          
-          // Auto-redirect based on user role
-          const redirectPath = data.user.role === 'ADMIN' ? '/admin' : '/dashboard';
-          window.location.href = redirectPath;
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Login failed';
           set({
@@ -88,9 +84,6 @@ export const useAppStore = create<AppState>()(
             isLoading: false,
             authError: null,
           });
-          
-          // Auto-redirect to dashboard for new customers
-          window.location.href = '/dashboard';
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Registration failed';
           set({

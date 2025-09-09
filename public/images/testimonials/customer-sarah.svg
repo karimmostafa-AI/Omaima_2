@@ -1,0 +1,33 @@
+<svg width="80" height="80" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="sarahGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8b5cf6"/>
+      <stop offset="100%" style="stop-color:#6366f1"/>
+    </linearGradient>
+    <linearGradient id="skinTone1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f3c5a0"/>
+      <stop offset="100%" style="stop-color:#e0a478"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Background circle -->
+  <circle cx="40" cy="40" r="40" fill="url(#sarahGradient)"/>
+  
+  <!-- Professional woman -->
+  <g transform="translate(40, 40)">
+    <!-- Head -->
+    <ellipse cx="0" cy="-5" rx="12" ry="15" fill="url(#skinTone1)"/>
+    
+    <!-- Hair -->
+    <path d="M-15 -15 Q0 -25 15 -15 Q18 -5 15 5 L12 2 Q8 -3 5 0 L0 -5 Q-5 -8 -8 -3 L-12 2 Q-15 -5 -18 -5 Q-15 -15 -15 -15 Z" fill="#8B4513"/>
+    
+    <!-- Professional blazer -->
+    <rect x="-10" y="8" width="20" height="25" rx="3" fill="#1f2937"/>
+    
+    <!-- White shirt -->
+    <rect x="-7" y="12" width="14" height="15" rx="2" fill="white"/>
+    
+    <!-- Simple necklace -->
+    <ellipse cx="0" cy="18" rx="6" ry="2" fill="none" stroke="#cf1773" stroke-width="1"/>
+  </g>
+</svg>
