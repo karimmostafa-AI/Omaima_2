@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Badge } from "@/components/ui/badge"
-import { useAuthStore } from "@/store/auth-store"
+import { useAppStore } from "@/store/app"
 import { useCartStore } from "@/store/cart-store"
 import { UserDropdown } from "./user-dropdown"
 
@@ -21,7 +21,7 @@ const navigation = [
 
 export function Header() {
   const [isSearchOpen, setIsSearchOpen] = useState(false)
-  const { user } = useAuthStore()
+  const { user } = useAppStore()
   const { items } = useCartStore()
   
   const cartItemsCount = items.reduce((sum, item) => sum + item.quantity, 0)

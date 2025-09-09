@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { User, Settings, ShoppingBag, Heart, LogOut } from "lucide-react"
 import {
   DropdownMenu,
@@ -12,12 +13,13 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { useAuthStore } from "@/store/auth-store"
+import { useAppStore } from "@/store/app"
 
 interface UserDropdownProps {
   user: {
     id: string
     email: string
+    name?: string
     firstName?: string
     lastName?: string
     avatarUrl?: string
@@ -26,15 +28,27 @@ interface UserDropdownProps {
 }
 
 export function UserDropdown({ user }: UserDropdownProps) {
-  const { signOut } = useAuthStore()
+  const { logout } = useAppStore()
+  const router = useRouter()
   
   const initials = user.firstName && user.lastName 
     ? `${user.firstName[0]}${user.lastName[0]}`.toUpperCase()
+    : user.name && user.name.includes(' ')
+    ? user.name.split(' ').map(n => n[0]).join('').toUpperCase()
     : user.email[0].toUpperCase()
 
   const displayName = user.firstName && user.lastName 
     ? `${user.firstName} ${user.lastName}`
-    : user.email
+    : user.name || user.email
+    
+  const handleLogout = async () => {
+    try {
+      await logout()
+      router.push('/')
+    } catch (error) {
+      console.error('Logout failed:', error)
+    }
+  }
 
   return (
     <DropdownMenu>
@@ -95,7 +109,7 @@ export function UserDropdown({ user }: UserDropdownProps) {
         
         <DropdownMenuSeparator />
         
-        <DropdownMenuItem onClick={signOut}>
+        <DropdownMenuItem onClick={handleLogout}>
           <LogOut className="mr-2 h-4 w-4" />
           <span>Log out</span>
         </DropdownMenuItem>
