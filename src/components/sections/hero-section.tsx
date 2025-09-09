@@ -4,35 +4,57 @@ import Link from "next/link"
 
 export function HeroSection() {
   return (
-    <div className="relative min-h-screen w-full overflow-x-hidden">
-      {/* Background Image */}
+    <div className="relative min-h-[600px] w-full overflow-hidden bg-white">
+      {/* Background Image - Optimized size */}
       <div className="absolute inset-0">
         <img
           alt="Woman in a formal suit"
-          className="h-full w-full object-cover"
+          className="h-full w-full object-cover object-center"
           src="/9f05a07f-72e0-4213-ad1d-1d230da091e0.jfif"
           onError={(e) => {
             e.currentTarget.style.display = 'none';
           }}
         />
-        <div className="absolute inset-0 bg-black/30"></div>
+        {/* Overlay using theme colors */}
+        <div className="absolute inset-0 bg-gradient-to-r from-gray-900/70 via-gray-800/50 to-transparent"></div>
       </div>
       
-      {/* Content */}
-      <div className="relative z-10 flex min-h-screen flex-col items-center justify-center text-center text-white p-8">
-        <div className="max-w-3xl space-y-8">
-          <h1 className="text-5xl font-bold leading-tight tracking-tight text-white md:text-7xl font-serif">
-            Elegance Redefined
-          </h1>
-          <p className="text-lg leading-relaxed text-gray-200 md:text-xl">
-            At Omaima, we believe in the power of a perfectly tailored suit. Our collections are crafted with meticulous attention to detail, offering timeless sophistication and confidence for the modern woman.
-          </p>
-          <Link
-            href="/products"
-            className="inline-block rounded-md bg-white px-10 py-4 text-lg font-semibold text-gray-900 shadow-lg transition-transform duration-300 ease-in-out hover:scale-105 hover:bg-gray-100"
-          >
-            Shop The Collection
-          </Link>
+      {/* Content - Aligned with theme */}
+      <div className="relative z-10 flex h-[600px] items-center justify-start">
+        <div className="container mx-auto px-10">
+          <div className="max-w-2xl space-y-6">
+            <h1 className="text-4xl font-bold leading-tight tracking-tight text-white md:text-6xl" style={{ fontFamily: 'Manrope, "Noto Sans", sans-serif' }}>
+              Elegance Redefined
+            </h1>
+            <p className="text-lg leading-relaxed text-gray-200 md:text-xl max-w-xl" style={{ fontFamily: 'Manrope, "Noto Sans", sans-serif' }}>
+              At Omaima, we believe in the power of a perfectly tailored suit. Our collections are crafted with meticulous attention to detail, offering timeless sophistication and confidence for the modern woman.
+            </p>
+            <div className="pt-4">
+              <Link
+                href="/products"
+                className="inline-block rounded-md bg-[#cf1773] px-8 py-3 text-base font-semibold text-white shadow-lg transition-colors duration-200 hover:bg-[#b91c5c] focus:outline-none focus:ring-4 focus:ring-[#cf1773]/50"
+                style={{ fontFamily: 'Manrope, "Noto Sans", sans-serif' }}
+              >
+                Shop The Collection
+              </Link>
+            </div>
+            
+            {/* Trust indicators matching theme */}
+            <div className="pt-8 flex items-center space-x-6 text-gray-300">
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-[#cf1773] rounded-full"></div>
+                <span className="text-sm font-medium">Premium Fabrics</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-[#cf1773] rounded-full"></div>
+                <span className="text-sm font-medium">Custom Tailoring</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-[#cf1773] rounded-full"></div>
+                <span className="text-sm font-medium">Fast Delivery</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
